@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PetroCorp - Operator Shift Console</title>
+    <meta name="description" content="PetroCorp Station Management - Operator Shift & Dispenser Console">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            try {
+                var saved = localStorage.getItem('petrocorp-theme');
+                if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    saved = 'dark';
+                }
+                var theme = saved === 'dark' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.style.colorScheme = theme;
+            } catch (e) {}
+        })();
+    </script>
+</head>
+
+<body>
+    <!-- Animated Grid Background -->
+    <div class="grid-background" aria-hidden="true"></div>
+
+    <!-- Application Top Bar -->
+    <header class="app-header">
+        <div class="header-brand">
+            <span class="brand-icon">⛽</span>
+            <div>
+                <h1 class="brand-title">PetroCorp</h1>
+            </div>
+            <span id="station-badge" class="station-badge">OPERATOR TERMINAL</span>
+        </div>
+
+        <div class="header-actions">
+            <!-- Manager link if user has manager access -->
+            <a href="manager.html" id="manager-portal-link" class="btn btn-secondary hidden" style="padding: 6px 12px; font-size: 0.82rem;" title="Switch to Manager Administration Console">
+                📊 Manager Portal
+            </a>
+
+            <div class="user-badge-wrap">
+                <span id="user-name" class="user-name">Loading...</span>
+                <span id="user-role-badge" class="user-role-badge role-operator">OPERATOR</span>
+            </div>
+
+            <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark and light mode" title="Toggle Light / Dark Mode">
+                <svg class="theme-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
+                    <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
+                    <line class="sun-icon" x1="12" y1="21" x2="12" y2="23"></line>
+                    <line class="sun-icon" x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line class="sun-icon" x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line class="sun-icon" x1="1" y1="12" x2="3" y2="12"></line>
+                    <line class="sun-icon" x1="21" y1="12" x2="23" y2="12"></line>
+                    <line class="sun-icon" x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+
+            <button id="logout-btn" class="btn btn-secondary" style="padding: 6px 14px;">Logout</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="app-layout">
+        <!-- Sidebar Navigation (Pumps, Credit, Expenses, End Shift) -->
+        <aside class="app-sidebar">
+            <div class="sidebar-title">Operator Tasks</div>
+            <button class="sidebar-btn active" data-op-tab="pumps-view">
+                <span>⛽</span> Nozzle Meters
+            </button>
+            <button class="sidebar-btn" data-op-tab="credit-view">
+                <span>📘</span> Log Udhaari (Credit)
+            </button>
+            <button class="sidebar-btn" data-op-tab="expenses-view">
+                <span>💸</span> Shift Expenses
+            </button>
+            <button class="sidebar-btn" data-op-tab="recon-view">
+                <span>💰</span> Payment & End Shift
+            </button>
+        </aside>
+
+        <main class="app-main" style="padding-bottom: 90px;">
+            <!-- Shift Setup Card (If no active shift) -->
+            <div id="shift-setup-panel" class="card card-elevated" style="padding: 32px 24px; max-width: 560px; margin: 40px auto; text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 12px;">⏰</div>
+                <h2>Start Work Shift</h2>
+                <p class="subtitle">Select your shift type to initialize today's pump dispenser meters.</p>
+                
+                <div class="form-group" style="text-align: left; max-width: 320px; margin: 0 auto 20px;">
+                    <label for="op-shift-type">Designated Shift</label>
+                    <select id="op-shift-type" required>
+                        <option value="1">1st Shift (06:00 - 14:00)</option>
+                        <option value="2">2nd Shift (14:00 - 22:00)</option>
+                        <option value="3">Night Shift (22:00 - 06:00)</option>
+                        <option value="4">Extra Shift</option>
+                    </select>
+                </div>
+
+                <div id="shift-init-rates" style="margin-bottom: 24px; font-size: 0.9rem; color: var(--text-secondary); background: var(--bg-surface-muted); padding: 12px; border-radius: var(--radius-sm);">
+                    Checking today's rates...
+                </div>
+
+                <button id="start-shift-btn" class="btn btn-primary" style="padding: 12px 28px; font-size: 1rem;">
+                    Open Shift & Load Meters
+                </button>
+            </div>
+
+            <!-- Active Shift Container -->
+            <div id="shift-active-panel" class="hidden">
+                <!-- Shift Status Banner -->
+                <div class="card" style="padding: 14px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.2rem;">⏱️</span>
+                        <div>
+                            <span id="shift-badge-name" style="font-weight: 700; font-size: 1.05rem; color: var(--accent-primary);">1st Shift</span>
+                            <span style="color: var(--text-muted); margin: 0 6px;">•</span>
+                            <span id="shift-badge-date" class="mono" style="font-size: 0.92rem; color: var(--text-secondary);">2026-10-09</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 18px; font-size: 0.9rem;">
+                        <span>Petrol (MS): <strong id="shift-rate-ms" class="mono" style="color: var(--fuel-ms);">₹0.00</strong></span>
+                        <span>Diesel (HSD): <strong id="shift-rate-hsd" class="mono" style="color: var(--fuel-hsd);">₹0.00</strong></span>
+                    </div>
+                </div>
+
+                <!-- 1. PUMPS & NOZZLE METERS TAB -->
+                <section id="pumps-view" class="op-tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h2>Dispenser Meter Readings</h2>
+                            <p class="subtitle">Opening readings are auto-locked. Enter closing meter readings to calculate net sales.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button id="op-add-pump-btn" class="btn btn-primary"><span>➕</span> Add Pump</button>
+                            <button id="op-manage-pumps-btn" class="btn btn-secondary"><span>✏️</span> Manage Pumps</button>
+                            <button id="save-all-readings-btn" class="btn btn-secondary">💾 Save Meter Readings</button>
+                        </div>
+                    </div>
+
+                    <!-- 10 Nozzles Grid -->
+                    <div id="nozzles-container" class="nozzles-grid">
+                        <!-- Rendered by operator controller -->
+                    </div>
+                </section>
+
+                <!-- 2. UDHAARI (CREDIT SALES) TAB -->
+                <section id="credit-view" class="op-tab-content hidden">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+                        <!-- Form -->
+                        <div class="card" style="padding: 24px;">
+                            <h3>Log Udhaari (Credit Fuel)</h3>
+                            <p class="subtitle">Record fuel given on credit to registered accounts.</p>
+
+                            <form id="op-credit-form">
+                                <div class="form-group">
+                                    <label for="cred-customer">Select Customer / Account</label>
+                                    <select id="cred-customer" required>
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cred-vehicle">Vehicle Number</label>
+                                    <input type="text" id="cred-vehicle" placeholder="e.g. MH 12 AB 1234">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cred-fuel">Fuel Grade</label>
+                                    <select id="cred-fuel" required>
+                                        <option value="MS">Petrol (MS)</option>
+                                        <option value="HSD">Diesel (HSD)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cred-quantity">Quantity (Litres)</label>
+                                    <input type="number" step="0.01" id="cred-quantity" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Calculated Credit Amount</label>
+                                    <div id="cred-calc-amount" class="mono" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-primary); padding: 4px 0;">₹0.00</div>
+                                </div>
+                                <button type="submit" id="add-credit-btn" class="btn btn-primary btn-block">Add to Shift Credit Ledger</button>
+                            </form>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="card" style="padding: 24px;">
+                            <h3>Shift Credit Log</h3>
+                            <p class="subtitle">Credits logged during this shift.</p>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Customer</th>
+                                            <th>Vehicle</th>
+                                            <th>Fuel</th>
+                                            <th>Litres</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shift-credit-tbody">
+                                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No credit transactions logged yet.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. EXPENSES TAB -->
+                <section id="expenses-view" class="op-tab-content hidden">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+                        <!-- Form -->
+                        <div class="card" style="padding: 24px;">
+                            <h3>Log Shift Cash Expense</h3>
+                            <p class="subtitle">Enter any cash spent directly from pump collections.</p>
+
+                            <form id="op-expense-form">
+                                <div class="form-group">
+                                    <label for="exp-category">Expense Category</label>
+                                    <select id="exp-category" required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-amount">Amount (₹)</label>
+                                    <input type="number" step="0.01" id="exp-amount" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-desc">Remarks / Description</label>
+                                    <input type="text" id="exp-desc" placeholder="e.g. Refreshments for staff">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">Record Expense</button>
+                            </form>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="card" style="padding: 24px;">
+                            <h3>Shift Expenses Log</h3>
+                            <p class="subtitle">Total expenses will be deducted from your cash handover.</p>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Description</th>
+                                            <th>Amount</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shift-expenses-tbody">
+                                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No expenses recorded yet.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. RECONCILIATION & END SHIFT TAB -->
+                <section id="recon-view" class="op-tab-content hidden">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
+                        <!-- Payment Methods Input -->
+                        <div class="card" style="padding: 24px;">
+                            <h3>Payment Collections</h3>
+                            <p class="subtitle">Enter all cash and digital receipts collected during this shift.</p>
+                            
+                            <div id="payment-methods-grid" style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Dynamic Payment inputs inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Balance Summary Box -->
+                        <div class="card card-elevated" style="padding: 24px;">
+                            <h3>Shift Reconciliation Balance</h3>
+                            <p class="subtitle">Comparison of expected fuel sales against your total handover deductions.</p>
+
+                            <div style="display: flex; flex-direction: column; gap: 12px; margin: 18px 0;">
+                                <div class="reading-preview">
+                                    <span class="reading-preview-label">Total Meter Sales Revenue:</span>
+                                    <span id="recon-summary-sales" class="mono reading-preview-value">₹0.00</span>
+                                </div>
+                                <div class="reading-preview">
+                                    <span class="reading-preview-label">Collections (Cash & Digital):</span>
+                                    <span id="recon-summary-collections" class="mono reading-preview-value">₹0.00</span>
+                                </div>
+                                <div class="reading-preview">
+                                    <span class="reading-preview-label">Udhaari (Credit Fuel):</span>
+                                    <span id="recon-summary-credit" class="mono reading-preview-value">₹0.00</span>
+                                </div>
+                                <div class="reading-preview">
+                                    <span class="reading-preview-label">Shift Expenses (Paid from cash):</span>
+                                    <span id="recon-summary-expenses" class="mono reading-preview-value">₹0.00</span>
+                                </div>
+                                <div class="reading-preview" style="border-top: 2px solid var(--border-subtle); padding-top: 12px;">
+                                    <span class="reading-preview-label">Total Handover Deductions:</span>
+                                    <span id="recon-summary-total-deductions" class="mono reading-preview-value">₹0.00</span>
+                                </div>
+                            </div>
+
+                            <div id="recon-variance-box" style="padding: 16px; border-radius: var(--radius-md); text-align: center; margin-bottom: 20px; background: var(--bg-surface-muted);">
+                                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">
+                                    Reconciliation Variance (Extra / Short)
+                                </div>
+                                <div id="recon-variance-display" class="mono" style="font-size: 2rem; font-weight: 800; margin-top: 4px;">
+                                    ₹0.00
+                                </div>
+                                <div id="recon-variance-note" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">
+                                    Perfect balance.
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="shift-notes">Shift Handover Notes (Optional)</label>
+                                <textarea id="shift-notes" rows="2" placeholder="Any remarks for manager review..."></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 12px;">
+                                <button id="save-draft-btn" class="btn btn-secondary" style="flex: 1;">Save as Draft</button>
+                                <button id="submit-shift-btn" class="btn btn-primary" style="flex: 2;">Submit for Approval</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sticky Bottom Summary Bar -->
+                <div class="shift-summary-bar">
+                    <div class="summary-metrics">
+                        <div class="summary-metric">
+                            <span class="summary-metric-label">Net Litres</span>
+                            <span id="bar-litres" class="summary-metric-val mono">0.00 L</span>
+                        </div>
+                        <div class="summary-metric">
+                            <span class="summary-metric-label">Sales Amount</span>
+                            <span id="bar-sales" class="summary-metric-val mono" style="color: var(--accent-primary);">₹0.00</span>
+                        </div>
+                        <div class="summary-metric">
+                            <span class="summary-metric-label">Accounted</span>
+                            <span id="bar-deductions" class="summary-metric-val mono">₹0.00</span>
+                        </div>
+                        <div class="summary-metric">
+                            <span class="summary-metric-label">Variance</span>
+                            <span id="bar-variance" class="summary-metric-val mono">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button id="bar-quick-save-btn" class="btn btn-secondary">💾 Save Draft</button>
+                        <button id="bar-quick-submit-btn" class="btn btn-primary">Submit Shift</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Generic Modal Dialog -->
+    <div id="app-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="modal-title" class="modal-title">Modal Title</h3>
+                <button id="modal-close-btn" class="toast-close" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+            <div id="modal-footer" class="modal-footer"></div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/pages/operator-page.js"></script>
+</body>
+
+</html>

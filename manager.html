@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PetroCorp - Station Manager Console</title>
+    <meta name="description" content="PetroCorp Station Management - Executive DSSR, Approvals & Operations Console">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            try {
+                var saved = localStorage.getItem('petrocorp-theme');
+                if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    saved = 'dark';
+                }
+                var theme = saved === 'dark' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.style.colorScheme = theme;
+            } catch (e) {}
+        })();
+    </script>
+</head>
+
+<body>
+    <!-- Animated Grid Background -->
+    <div class="grid-background" aria-hidden="true"></div>
+
+    <!-- Application Top Bar -->
+    <header class="app-header">
+        <div class="header-brand">
+            <span class="brand-icon">⛽</span>
+            <div>
+                <h1 class="brand-title">PetroCorp</h1>
+            </div>
+            <span id="station-badge" class="station-badge">MANAGER WORKSTATION</span>
+        </div>
+
+        <div class="header-actions">
+            <!-- Link to Operator Terminal -->
+            <a href="operator.html" id="operator-terminal-link" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;" title="Open Operator Shift Terminal">
+                ⛽ Operator Terminal
+            </a>
+
+            <div class="user-badge-wrap">
+                <span id="user-name" class="user-name">Loading...</span>
+                <span id="user-role-badge" class="user-role-badge role-manager">MANAGER</span>
+            </div>
+
+            <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark and light mode" title="Toggle Light / Dark Mode">
+                <svg class="theme-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
+                    <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
+                    <line class="sun-icon" x1="12" y1="21" x2="12" y2="23"></line>
+                    <line class="sun-icon" x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line class="sun-icon" x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line class="sun-icon" x1="1" y1="12" x2="3" y2="12"></line>
+                    <line class="sun-icon" x1="21" y1="12" x2="23" y2="12"></line>
+                    <line class="sun-icon" x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+
+            <button id="logout-btn" class="btn btn-secondary" style="padding: 6px 14px;">Logout</button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <div class="sidebar-title">Station Management</div>
+            <button class="sidebar-btn active" data-mgr-tab="mgr-overview-view">
+                <span>📊</span> DSSR & Inventory
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-approvals-view">
+                <span>📋</span> Shift Approvals
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-rates-view">
+                <span>💵</span> Daily Fuel Rates
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-hardware-view">
+                <span>⛽</span> Pumps & Tanks
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-credits-view">
+                <span>📘</span> Udhaari Ledger
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-employees-view">
+                <span>👥</span> Staff & Operators
+            </button>
+            <button class="sidebar-btn" data-mgr-tab="mgr-settings-view">
+                <span>⚙️</span> Settings
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- TAB 1: DSSR & OVERVIEW -->
+            <section id="mgr-overview-view" class="mgr-tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h2>Daily Stock and Sales Record (DSSR)</h2>
+                        <p class="subtitle">Daily inventory reconciliation comparing pump meter totals to tank dips.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label for="dssr-date-input" style="font-weight: 600; font-size: 0.9rem;">Date:</label>
+                        <input type="date" id="dssr-date-input" style="width: auto;">
+                        <button id="load-dssr-btn" class="btn btn-secondary">Refresh</button>
+                        <button id="export-dssr-btn" class="btn btn-primary">📥 Export CSV</button>
+                    </div>
+                </div>
+
+                <!-- Macro KPI Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Meter Sales Revenue</span>
+                        <span id="dssr-kpi-revenue" class="stat-value mono">₹0.00</span>
+                        <span class="stat-subtext">MS + HSD combined</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">MS (Petrol) Dispensed</span>
+                        <span id="dssr-kpi-ms-litres" class="stat-value mono">0.00 L</span>
+                        <span class="stat-subtext">Across all pumps</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">HSD (Diesel) Dispensed</span>
+                        <span id="dssr-kpi-hsd-litres" class="stat-value mono">0.00 L</span>
+                        <span class="stat-subtext">Across all pumps</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Stock Variation Status</span>
+                        <span id="dssr-kpi-variation" class="stat-value mono">0.00 L</span>
+                        <span class="stat-subtext">Meter vs Tank discrepancy</span>
+                    </div>
+                </div>
+
+                <!-- DSSR Dynamic Tables (MS & HSD) -->
+                <div id="dssr-tables-container" style="display: flex; flex-direction: column; gap: 28px;">
+                    <!-- Injected by manager controller -->
+                </div>
+            </section>
+
+            <!-- TAB 2: SHIFT APPROVALS -->
+            <section id="mgr-approvals-view" class="mgr-tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2>Pending Shift Submissions</h2>
+                        <p class="subtitle">Review operator readings, payment collections, and approve into permanent record.</p>
+                    </div>
+                    <button id="refresh-approvals-btn" class="btn btn-secondary">Refresh</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Shift ID</th>
+                                <th>Date</th>
+                                <th>Shift</th>
+                                <th>Operator</th>
+                                <th>Sales (₹)</th>
+                                <th>Collections (₹)</th>
+                                <th>Variance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvals-tbody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No shifts pending approval.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: DAILY FUEL RATES -->
+            <section id="mgr-rates-view" class="mgr-tab-content hidden">
+                <div class="card" style="padding: 28px; max-width: 540px;">
+                    <h2>Daily Fuel Rates Configuration</h2>
+                    <p class="subtitle">Set today's retail fuel prices per litre. Operator shifts will lock these rates.</p>
+
+                    <form id="mgr-rates-form">
+                        <div class="form-group">
+                            <label for="rate-date-input">Effective Date</label>
+                            <input type="date" id="rate-date-input" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rate-ms-input">Petrol (MS) Rate (₹ / Litre)</label>
+                            <input type="number" step="0.01" id="rate-ms-input" required placeholder="e.g. 104.50">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rate-hsd-input">Diesel (HSD) Rate (₹ / Litre)</label>
+                            <input type="number" step="0.01" id="rate-hsd-input" required placeholder="e.g. 92.80">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Publish Daily Rates</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 4: PUMPS & TANKS (HARDWARE MANAGEMENT) -->
+            <section id="mgr-hardware-view" class="mgr-tab-content hidden">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; align-items: start;">
+                    <!-- Tank Dip Entry -->
+                    <div class="card" style="padding: 24px;">
+                        <h3>Record Physical Tank Dip</h3>
+                        <p class="subtitle">Daily measurement of underground storage tanks.</p>
+
+                        <form id="mgr-dip-form">
+                            <div class="form-group">
+                                <label for="dip-date">Date</label>
+                                <input type="date" id="dip-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="dip-tank">Select Tank</label>
+                                <select id="dip-tank" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dip-reading">Fuel Dip (mm / Litres)</label>
+                                <input type="number" step="0.01" id="dip-reading" required placeholder="Enter fuel dip">
+                            </div>
+                            <div class="form-group">
+                                <label for="dip-water">Water Dip (mm)</label>
+                                <input type="number" step="0.01" id="dip-water" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="dip-net-stock">Calculated / Net Stock (Litres)</label>
+                                <input type="number" step="0.01" id="dip-net-stock" required placeholder="Net litres in tank">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Save Tank Dip</button>
+                        </form>
+                    </div>
+
+                    <!-- Fuel Delivery Entry -->
+                    <div class="card" style="padding: 24px;">
+                        <h3>Log Fuel Delivery (Receipt)</h3>
+                        <p class="subtitle">Record tanker decanting and invoice receipts.</p>
+
+                        <form id="mgr-delivery-form">
+                            <div class="form-group">
+                                <label for="rec-date">Date</label>
+                                <input type="date" id="rec-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rec-tank">Decanted Into Tank</label>
+                                <select id="rec-tank" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="rec-quantity">Delivered Quantity (Litres)</label>
+                                <input type="number" step="0.01" id="rec-quantity" required placeholder="e.g. 12000">
+                            </div>
+                            <div class="form-group">
+                                <label for="rec-invoice">Invoice / Tanker Challan No.</label>
+                                <input type="text" id="rec-invoice" placeholder="e.g. INV-9843">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Record Delivery</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Nozzles Hardware List -->
+                <div class="card" style="padding: 24px; margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3>Active Dispenser Pumps & Nozzles</h3>
+                            <p class="subtitle">Dynamically configure dispensers, edit meter calibrations, add new units, or remove pumps.</p>
+                        </div>
+                        <button id="add-pump-modal-btn" class="btn btn-primary">
+                            <span>➕</span> Add New Pump / Nozzle
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Pump / Nozzle Label</th>
+                                    <th>Fuel Grade</th>
+                                    <th>Master Reading</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hardware-nozzles-tbody">
+                                <!-- Populated dynamically with ✏️ Edit and 🗑️ Delete buttons -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: UDHAARI LEDGER -->
+            <section id="mgr-credits-view" class="mgr-tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2>Udhaari (Credit) Ledger</h2>
+                        <p class="subtitle">Track customer balances, credit limits, and record repayments.</p>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button id="add-customer-modal-btn" class="btn btn-primary">➕ New Customer</button>
+                        <button id="export-credit-btn" class="btn btn-secondary">📥 Export Ledger</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Vehicle No</th>
+                                <th>Opening Balance</th>
+                                <th>Total Credit Sales</th>
+                                <th>Total Repayments</th>
+                                <th>Outstanding Balance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mgr-credits-tbody">
+                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading credit ledger...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 6: STAFF & OPERATORS -->
+            <section id="mgr-employees-view" class="mgr-tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2>Station Personnel Roster</h2>
+                        <p class="subtitle">Manage authorized station operators and manager access.</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-operator-modal-btn">
+                        <span>➕</span> Add New Operator
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Phone / Contact</th>
+                                <th>Assigned Pumps</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mgr-employees-tbody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading staff roster...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Operator Dispenser Pump Assignment Card -->
+                <div class="card" style="padding: 24px; margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3>Operator Dispenser Pump Assignments</h3>
+                            <p class="subtitle">Assign authorized dispenser pumps/nozzles to each operator. Operators will strictly only see and access their assigned pumps.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start;">
+                        <div class="form-group">
+                            <label for="assign-operator-select">Select Station Operator</label>
+                            <select id="assign-operator-select">
+                                <option value="">Choose an operator...</option>
+                            </select>
+                            <small style="color: var(--text-muted); font-size: 0.8rem;">Changes apply directly to this operator's shift console.</small>
+                        </div>
+
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label style="font-weight: 600; font-size: 0.88rem;">Authorized Dispenser Units</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" id="assign-select-all-btn">Select All</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="assign-clear-all-btn">Clear All</button>
+                                </div>
+                            </div>
+                            <div id="assign-nozzles-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--bg-surface-muted); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">Select an operator on the left to configure pump permissions...</span>
+                            </div>
+                            <button id="save-operator-pumps-btn" class="btn btn-primary btn-block" style="margin-top: 14px;" disabled>
+                                💾 Save Pump Assignment for Operator
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 7: SETTINGS -->
+            <section id="mgr-settings-view" class="mgr-tab-content hidden">
+                <div class="card" style="padding: 28px; max-width: 600px;">
+                    <h2>Station Configuration</h2>
+                    <p class="subtitle">Operational parameters and warning thresholds.</p>
+
+                    <form id="station-settings-form">
+                        <div class="form-group">
+                            <label for="set-station-name">Station Business Name</label>
+                            <input type="text" id="set-station-name" placeholder="e.g. Mayur Automobiles">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-station-code">Station Code</label>
+                            <input type="text" id="set-station-code" placeholder="e.g. 48198TA198">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-stock-warning">Stock Variation Warning Threshold (Litres)</label>
+                            <input type="number" id="set-stock-warning" placeholder="50">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-cash-warning">Cash Shortage Warning Threshold (₹)</label>
+                            <input type="number" id="set-cash-warning" placeholder="100">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Station Settings</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Generic Modal Dialog -->
+    <div id="app-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="modal-title" class="modal-title">Modal Title</h3>
+                <button id="modal-close-btn" class="toast-close" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+            <div id="modal-footer" class="modal-footer"></div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/pages/manager-page.js"></script>
+</body>
+
+</html>
