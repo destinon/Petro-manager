@@ -904,11 +904,34 @@ input.is-invalid, select.is-invalid {
 [data-theme="dark"] input[type="password"],
 [data-theme="dark"] input[type="number"],
 [data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="tel"],
 [data-theme="dark"] select,
 [data-theme="dark"] textarea {
     background-color: var(--bg-surface-elevated);
     border-color: var(--border-strong);
     color: var(--text-primary);
+}
+
+/* Fix select dropdown arrow and option text in dark mode */
+[data-theme="dark"] select option {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-primary);
+}
+
+/* Fix date input calendar icon in dark mode */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+}
+
+/* Fix disabled inputs in dark mode */
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] select:disabled,
+[data-theme="dark"] textarea:disabled {
+    background-color: var(--bg-surface-muted);
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+    opacity: 0.6;
 }
 
 [data-theme="dark"] input::placeholder,
@@ -923,6 +946,29 @@ input.is-invalid, select.is-invalid {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
     background-color: var(--bg-surface-elevated);
 }
+
+/* Fix checkbox styling in dark mode */
+[data-theme="dark"] input[type="checkbox"] {
+    accent-color: var(--accent-primary);
+}
+
+/* Fix subtitle text in dark mode */
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+/* Fix modal overlay in dark mode */
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.75);
+}
+
+/* Fix code elements in dark mode */
+[data-theme="dark"] code {
+    background: var(--bg-surface-muted);
+    color: var(--accent-primary);
+}
+
 
 .alert-box {
     padding: 11px 14px;
@@ -1094,6 +1140,71 @@ input.is-invalid, select.is-invalid {
     border-top: 1px solid var(--border-subtle);
     background: var(--bg-surface-muted);
 }
+
+/* ========================================================
+   Database Console Styles
+   ======================================================== */
+#db-results-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+#db-results-container table {
+    margin-bottom: 0;
+    min-width: 100%;
+}
+
+#db-results-container thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-surface-muted);
+    border-bottom: 2px solid var(--border-strong);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+}
+
+[data-theme="dark"] #db-results-container thead th {
+    background: #172033;
+    border-bottom-color: var(--border-strong);
+}
+
+#db-info-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.data-table td.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+}
+
+/* Smooth custom scrollbars for table containers */
+#db-results-container::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+#db-results-container::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#db-results-container::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+}
+
+#db-results-container::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
 
 /* ========================================================
    Mobile Responsiveness

@@ -138,18 +138,11 @@ export async function fetchFuelTypes() {
             .from('fuel_types')
             .select('*')
             .order('sort_order', { ascending: true });
-        if (error || !data || data.length === 0) {
-            return [
-                { id: 1, name: 'MS', display_name: 'Petrol (MS)' },
-                { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }
-            ];
-        }
-        return data;
-    } catch {
-        return [
-            { id: 1, name: 'MS', display_name: 'Petrol (MS)' },
-            { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }
-        ];
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.warn('Error fetching fuel types:', err);
+        return [];
     }
 }
 
@@ -166,43 +159,21 @@ export async function fetchPumps() {
     }
 }
 
-const DEFAULT_NOZZLES = [
-    { id: 1, name: 'MS 1', fuel_type_id: 1, master_reading: 104500, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-    { id: 2, name: 'HSD 2', fuel_type_id: 2, master_reading: 89200, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true },
-    { id: 3, name: 'MS 3', fuel_type_id: 1, master_reading: 122100, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-    { id: 4, name: 'HSD 4', fuel_type_id: 2, master_reading: 78400, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true },
-    { id: 5, name: 'MS 5', fuel_type_id: 1, master_reading: 99400, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-    { id: 6, name: 'HSD 6', fuel_type_id: 2, master_reading: 110200, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true },
-    { id: 7, name: 'MS 7', fuel_type_id: 1, master_reading: 84300, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-    { id: 8, name: 'HSD 8', fuel_type_id: 2, master_reading: 96500, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true },
-    { id: 9, name: 'MS 9', fuel_type_id: 1, master_reading: 134000, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-    { id: 10, name: 'HSD 10', fuel_type_id: 2, master_reading: 67100, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true }
-];
-
 export async function fetchNozzles() {
-    // 1. Check local custom store first (allows dynamic additions/edits/deletions immediately)
-    const localStr = localStorage.getItem('petrocorp_custom_nozzles');
-    if (localStr) {
-        try {
-            const parsed = JSON.parse(localStr);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch {}
-    }
-
-    // 2. Try fetching from remote Supabase DB
+    // 1. Try fetching from remote Supabase DB first (source of truth)
     try {
         const { data, error } = await supabase
             .from('nozzles')
-            .select('*')
+            .select('*, fuel_types(id, name, display_name)')
             .order('id', { ascending: true });
 
         if (!error && data && data.length > 0) {
             const mapped = data.map(n => ({
                 ...n,
-                fuel_types: {
-                    id: n.fuel_type_id || (n.name.includes('MS') ? 1 : 2),
-                    name: n.name.includes('MS') ? 'MS' : 'HSD',
-                    display_name: n.name.includes('MS') ? 'Petrol (MS)' : 'Diesel (HSD)'
+                fuel_types: n.fuel_types || {
+                    id: n.fuel_type_id,
+                    name: n.fuel_type_id === 1 ? 'MS' : 'HSD',
+                    display_name: n.fuel_type_id === 1 ? 'Petrol (MS)' : 'Diesel (HSD)'
                 }
             }));
             localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(mapped));
@@ -212,9 +183,17 @@ export async function fetchNozzles() {
         console.warn('Notice loading nozzles from DB:', err);
     }
 
-    // 3. Fallback baseline 10 nozzles
-    localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(DEFAULT_NOZZLES));
-    return DEFAULT_NOZZLES;
+    // 2. Fallback: check local cache (for offline resilience)
+    const localStr = localStorage.getItem('petrocorp_custom_nozzles');
+    if (localStr) {
+        try {
+            const parsed = JSON.parse(localStr);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch {}
+    }
+
+    // 3. No data — return empty (everything is dynamic)
+    return [];
 }
 
 export async function createNozzle({ name, fuel_type_id, master_reading }) {
@@ -382,16 +361,12 @@ export async function fetchTanks() {
             .from('tanks')
             .select('*, fuel_types(id, name, display_name)')
             .order('name');
-        if (!error && data && data.length > 0) return data;
-    } catch {}
-
-    // Default tanks
-    return [
-        { id: 1, name: 'MS Tank 1', fuel_type_id: 1, capacity_litres: 20000, current_stock_litres: 8500, fuel_types: { id: 1, name: 'MS' } },
-        { id: 2, name: 'MS Tank 2', fuel_type_id: 1, capacity_litres: 20000, current_stock_litres: 7800, fuel_types: { id: 1, name: 'MS' } },
-        { id: 3, name: 'HSD Tank 1', fuel_type_id: 2, capacity_litres: 20000, current_stock_litres: 12000, fuel_types: { id: 2, name: 'HSD' } },
-        { id: 4, name: 'HSD Tank 2', fuel_type_id: 2, capacity_litres: 20000, current_stock_litres: 11500, fuel_types: { id: 2, name: 'HSD' } }
-    ];
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.warn('Error fetching tanks:', err);
+        return [];
+    }
 }
 
 export async function fetchShiftTypes() {
@@ -400,16 +375,12 @@ export async function fetchShiftTypes() {
             .from('shift_types')
             .select('*')
             .order('sort_order', { ascending: true });
-        if (!error && data && data.length > 0) return data;
-    } catch {}
-
-    // Baseline fallback from SHIFT workbook
-    return [
-        { id: 1, name: '1st Shift' },
-        { id: 2, name: '2nd Shift' },
-        { id: 3, name: 'Night Shift' },
-        { id: 4, name: 'Extra Shift' }
-    ];
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.warn('Error fetching shift types:', err);
+        return [];
+    }
 }
 
 export async function fetchPaymentMethods() {
@@ -418,19 +389,12 @@ export async function fetchPaymentMethods() {
             .from('payment_methods')
             .select('*')
             .order('sort_order', { ascending: true });
-        if (!error && data && data.length > 0) return data;
-    } catch {}
-
-    // Baseline fallback from SHIFT workbook
-    return [
-        { id: 1, name: 'Cash' },
-        { id: 2, name: 'Paytm Card' },
-        { id: 3, name: 'Paytm QR' },
-        { id: 4, name: 'PhonePe Card' },
-        { id: 5, name: 'PhonePe QR' },
-        { id: 6, name: 'MobiKwik QR' },
-        { id: 7, name: 'Cheque' }
-    ];
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.warn('Error fetching payment methods:', err);
+        return [];
+    }
 }
 
 export async function fetchExpenseCategories() {
@@ -439,16 +403,12 @@ export async function fetchExpenseCategories() {
             .from('expense_categories')
             .select('*')
             .order('name');
-        if (!error && data && data.length > 0) return data;
-    } catch {}
-
-    return [
-        { id: 1, name: 'Refreshments' },
-        { id: 2, name: 'Maintenance' },
-        { id: 3, name: 'Supplies' },
-        { id: 4, name: 'Transport' },
-        { id: 5, name: 'Miscellaneous' }
-    ];
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.warn('Error fetching expense categories:', err);
+        return [];
+    }
 }
 
 export async function fetchStationSettings() {
@@ -1330,4 +1290,122 @@ export async function generateDSSRData(date) {
         previous_date: prevDate,
         fuel_results: dssrResults
     };
+}
+
+// ==========================================
+// 9. GENERIC DATABASE CONSOLE (MANAGER CRUD)
+// ==========================================
+
+/** Known PetroCorp tables for the Database Console */
+const KNOWN_TABLES = [
+    { name: 'profiles', display: 'Profiles (Users)', icon: '👥' },
+    { name: 'fuel_types', display: 'Fuel Types', icon: '⛽' },
+    { name: 'pumps', display: 'Pumps', icon: '🔧' },
+    { name: 'nozzles', display: 'Nozzles / Dispensers', icon: '⛽' },
+    { name: 'tanks', display: 'Tanks', icon: '🛢️' },
+    { name: 'payment_methods', display: 'Payment Methods', icon: '💳' },
+    { name: 'shift_types', display: 'Shift Types', icon: '🕐' },
+    { name: 'expense_categories', display: 'Expense Categories', icon: '📂' },
+    { name: 'customers', display: 'Customers (Udhaari)', icon: '📘' },
+    { name: 'station_settings', display: 'Station Settings', icon: '⚙️' },
+    { name: 'operator_nozzle_assignments', display: 'Operator Assignments', icon: '🔗' },
+    { name: 'daily_rates', display: 'Daily Fuel Rates', icon: '💵' },
+    { name: 'shifts', display: 'Shifts', icon: '📋' },
+    { name: 'shift_rate_snapshots', display: 'Shift Rate Snapshots', icon: '📸' },
+    { name: 'shift_nozzle_readings', display: 'Nozzle Readings', icon: '📊' },
+    { name: 'shift_payments', display: 'Shift Payments', icon: '💰' },
+    { name: 'shift_expenses', display: 'Shift Expenses', icon: '🧾' },
+    { name: 'credit_transactions', display: 'Credit Transactions', icon: '💳' },
+    { name: 'tank_dip_readings', display: 'Tank Dip Readings', icon: '📏' },
+    { name: 'fuel_receipts', display: 'Fuel Receipts / Deliveries', icon: '🚛' }
+];
+
+export function listAvailableTables() {
+    return KNOWN_TABLES;
+}
+
+export async function fetchTableData(tableName, { limit = 100, offset = 0, orderBy = 'id', ascending = false } = {}) {
+    const { data, error, count } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact' })
+        .order(orderBy, { ascending })
+        .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    return { rows: data || [], totalCount: count || 0 };
+}
+
+export async function fetchTableRowById(tableName, id, idColumn = 'id') {
+    const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq(idColumn, id)
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function insertTableRow(tableName, rowData) {
+    const { data, error } = await supabase
+        .from(tableName)
+        .insert([rowData])
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Invalidate related local caches
+    invalidateLocalCache(tableName);
+    return data;
+}
+
+export async function updateTableRow(tableName, id, updates, idColumn = 'id') {
+    const { data, error } = await supabase
+        .from(tableName)
+        .update(updates)
+        .eq(idColumn, id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    invalidateLocalCache(tableName);
+    return data;
+}
+
+export async function deleteTableRow(tableName, id, idColumn = 'id') {
+    const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq(idColumn, id);
+
+    if (error) throw error;
+
+    invalidateLocalCache(tableName);
+    return true;
+}
+
+/** Clear any localStorage caches related to the given table */
+function invalidateLocalCache(tableName) {
+    try {
+        const cacheMap = {
+            'nozzles': ['petrocorp_custom_nozzles'],
+            'customers': ['petrocorp_customers'],
+            'credit_transactions': ['petrocorp_credit_transactions'],
+            'operator_nozzle_assignments': ['petrocorp_operator_pump_assignments']
+        };
+        const keys = cacheMap[tableName];
+        if (keys) keys.forEach(k => localStorage.removeItem(k));
+
+        // Clear daily rates caches
+        if (tableName === 'daily_rates') {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('petrocorp_daily_rates_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+        }
+    } catch {}
 }

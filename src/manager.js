@@ -27,7 +27,12 @@ import {
     fetchStationSettings,
     updateStationSetting,
     fetchOperatorNozzleAssignments,
-    saveOperatorNozzleAssignments
+    saveOperatorNozzleAssignments,
+    listAvailableTables,
+    fetchTableData,
+    insertTableRow,
+    updateTableRow,
+    deleteTableRow
 } from './services/api.js';
 import { formatCurrency, formatLitres, formatDate, getTodayDateString } from './utils/formatters.js';
 import { exportToCSV } from './utils/exportCsv.js';
@@ -41,6 +46,7 @@ export async function initManagerDashboard(state) {
     setupManagerNavigation();
     setupManagerForms();
     setupOperatorPumpAssignmentEvents();
+    setupDatabaseConsole();
 
     // Default to today
     const today = getTodayDateString();
@@ -107,6 +113,7 @@ function switchManagerTab(tabId) {
     if (tabId === 'mgr-credits-view') loadCreditLedger();
     if (tabId === 'mgr-employees-view') loadEmployeesRoster();
     if (tabId === 'mgr-settings-view') loadStationSettingsForm();
+    if (tabId === 'mgr-database-view') initDatabaseConsoleView();
 }
 
 
@@ -1451,3 +1458,436 @@ function closeModal() {
     document.getElementById('app-modal')?.classList.add('hidden');
 }
 
+
+// ==========================================
+// 8. DATABASE CONSOLE (FULL CRUD)
+// ==========================================
+
+let dbConsoleState = {
+    currentTable: '',
+    currentPage: 0,
+    pageSize: 50,
+    totalCount: 0,
+    columns: [],
+    rows: [],
+    tablesMeta: []
+};
+
+function setupDatabaseConsole() {
+    const tableSelect = document.getElementById('db-table-select');
+    if (!tableSelect) return;
+
+    // Populate table selector
+    dbConsoleState.tablesMeta = listAvailableTables();
+    dbConsoleState.tablesMeta.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = `${t.icon} ${t.display}`;
+        tableSelect.appendChild(opt);
+    });
+
+    tableSelect.addEventListener('change', () => {
+        dbConsoleState.currentTable = tableSelect.value;
+        dbConsoleState.currentPage = 0;
+        if (dbConsoleState.currentTable) {
+            loadDatabaseTable();
+        }
+    });
+
+    document.getElementById('db-refresh-btn')?.addEventListener('click', () => loadDatabaseTable());
+    document.getElementById('db-insert-btn')?.addEventListener('click', () => openDbInsertModal());
+
+    document.getElementById('db-prev-page')?.addEventListener('click', () => {
+        if (dbConsoleState.currentPage > 0) {
+            dbConsoleState.currentPage--;
+            loadDatabaseTable();
+        }
+    });
+
+    document.getElementById('db-next-page')?.addEventListener('click', () => {
+        const maxPage = Math.ceil(dbConsoleState.totalCount / dbConsoleState.pageSize) - 1;
+        if (dbConsoleState.currentPage < maxPage) {
+            dbConsoleState.currentPage++;
+            loadDatabaseTable();
+        }
+    });
+
+    // Real-time table search/filter
+    const searchInput = document.getElementById('db-search-input');
+    searchInput?.addEventListener('input', () => {
+        const query = (searchInput.value || '').trim().toLowerCase();
+        const pkCol = dbConsoleState.currentTable === 'station_settings' ? 'key' : 'id';
+        if (!query) {
+            renderDatabaseTable(dbConsoleState.rows, dbConsoleState.columns, dbConsoleState.currentTable, pkCol);
+        } else {
+            const filtered = dbConsoleState.rows.filter(r => {
+                return Object.values(r).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(query));
+            });
+            renderDatabaseTable(filtered, dbConsoleState.columns, dbConsoleState.currentTable, pkCol);
+        }
+    });
+}
+
+function initDatabaseConsoleView() {
+    // If a table is already selected, refresh its data
+    if (dbConsoleState.currentTable) {
+        loadDatabaseTable();
+    }
+}
+
+async function loadDatabaseTable() {
+    const tableName = dbConsoleState.currentTable;
+    if (!tableName) return;
+
+    const container = document.getElementById('db-results-container');
+    const infoBar = document.getElementById('db-info-bar');
+    const refreshBtn = document.getElementById('db-refresh-btn');
+    const insertBtn = document.getElementById('db-insert-btn');
+    const searchInput = document.getElementById('db-search-input');
+
+    if (refreshBtn) refreshBtn.disabled = false;
+    if (insertBtn) insertBtn.disabled = false;
+    if (searchInput) {
+        searchInput.disabled = false;
+        searchInput.value = '';
+    }
+    if (infoBar) infoBar.style.display = '';
+
+    if (container) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading table data\u2026</div>';
+    }
+
+    try {
+        // Determine primary key column
+        const pkCol = tableName === 'station_settings' ? 'key' : 'id';
+        const orderBy = tableName === 'station_settings' ? 'key' : 'id';
+
+        const { rows, totalCount } = await fetchTableData(tableName, {
+            limit: dbConsoleState.pageSize,
+            offset: dbConsoleState.currentPage * dbConsoleState.pageSize,
+            orderBy,
+            ascending: true
+        });
+
+        dbConsoleState.rows = rows;
+        dbConsoleState.totalCount = totalCount;
+
+        // Get table meta
+        const meta = dbConsoleState.tablesMeta.find(t => t.name === tableName);
+        const tableIcon = document.getElementById('db-table-icon');
+        const tableNameEl = document.getElementById('db-table-name');
+        const rowCountEl = document.getElementById('db-row-count');
+        const pageInfoEl = document.getElementById('db-page-info');
+        const prevBtn = document.getElementById('db-prev-page');
+        const nextBtn = document.getElementById('db-next-page');
+
+        if (tableIcon) tableIcon.textContent = meta?.icon || '\ud83d\uddc4\ufe0f';
+        if (tableNameEl) tableNameEl.textContent = meta?.display || tableName;
+        if (rowCountEl) rowCountEl.textContent = `${totalCount} row${totalCount !== 1 ? 's' : ''}`;
+
+        const totalPages = Math.max(1, Math.ceil(totalCount / dbConsoleState.pageSize));
+        if (pageInfoEl) pageInfoEl.textContent = `Page ${dbConsoleState.currentPage + 1} of ${totalPages}`;
+        if (prevBtn) prevBtn.disabled = dbConsoleState.currentPage === 0;
+        if (nextBtn) nextBtn.disabled = dbConsoleState.currentPage >= totalPages - 1;
+
+        if (!rows || rows.length === 0) {
+            if (container) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <p style="font-weight: 600;">Table "${tableName}" is empty</p>
+                    <p style="font-size: 0.85rem;">Click "➕ Insert Row" to add data.</p>
+                </div>`;
+            }
+            return;
+        }
+
+        // Extract columns from first row
+        dbConsoleState.columns = Object.keys(rows[0]);
+
+        renderDatabaseTable(rows, dbConsoleState.columns, tableName, pkCol);
+
+    } catch (err) {
+        console.error('Error loading table:', err);
+        if (container) {
+            container.innerHTML = `<div class="alert-box alert-error" style="margin: 20px;">
+                Failed to load table "${tableName}": ${err.message}
+            </div>`;
+        }
+    }
+}
+
+function renderDatabaseTable(rows, columns, tableName, pkCol) {
+    const container = document.getElementById('db-results-container');
+    if (!container) return;
+
+    const truncate = (val, max = 60) => {
+        const str = String(val);
+        return str.length > max ? str.substring(0, max) + '\u2026' : str;
+    };
+
+    const formatCellValue = (val) => {
+        if (val === null || val === undefined) return '<span style="color: var(--text-muted); font-style: italic;">null</span>';
+        if (typeof val === 'boolean') return `<span style="color: ${val ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${val}</span>`;
+        if (typeof val === 'object') return `<code style="font-size: 0.78rem; word-break: break-all;">${truncate(JSON.stringify(val), 80)}</code>`;
+        return truncate(String(val));
+    };
+
+    container.innerHTML = `
+        <table class="data-table" style="font-size: 0.82rem;">
+            <thead>
+                <tr>
+                    <th style="min-width: 100px;">Actions</th>
+                    ${columns.map(c => `<th style="white-space: nowrap;">${c}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map((row, idx) => `
+                    <tr>
+                        <td style="white-space: nowrap;">
+                            <div style="display: flex; gap: 4px;">
+                                <button class="btn btn-secondary btn-icon" data-db-edit="${idx}" title="Edit Row">\u270f\ufe0f</button>
+                                <button class="btn btn-danger btn-icon" data-db-delete="${idx}" title="Delete Row">\ud83d\uddd1\ufe0f</button>
+                            </div>
+                        </td>
+                        ${columns.map(c => `<td class="mono" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis;">${formatCellValue(row[c])}</td>`).join('')}
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+
+    // Attach edit and delete listeners
+    container.querySelectorAll('[data-db-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-db-edit'));
+            openDbEditModal(tableName, rows[idx], pkCol);
+        });
+    });
+
+    container.querySelectorAll('[data-db-delete]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-db-delete'));
+            handleDbDeleteRow(tableName, rows[idx], pkCol);
+        });
+    });
+}
+
+function openDbEditModal(tableName, row, pkCol) {
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalFooter = document.getElementById('modal-footer');
+
+    const pkValue = row[pkCol];
+
+    if (modalTitle) modalTitle.textContent = `Edit Row in "${tableName}" (${pkCol}: ${pkValue})`;
+
+    const columns = Object.keys(row);
+    const readOnlyFields = ['id', 'created_at', 'updated_at', 'assigned_at', 'approved_at'];
+
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <form id="db-edit-form" onsubmit="return false;" style="max-height: 55vh; overflow-y: auto;">
+                ${columns.map(col => {
+                    const val = row[col];
+                    const isReadOnly = readOnlyFields.includes(col) || col === pkCol;
+                    const displayVal = val === null ? '' : (typeof val === 'object' ? JSON.stringify(val) : String(val));
+                    const isBool = typeof val === 'boolean';
+
+                    if (isBool) {
+                        return `
+                            <div class="form-group">
+                                <label>${col} ${isReadOnly ? '<span style="color: var(--text-muted); font-size: 0.75rem;">(read-only)</span>' : ''}</label>
+                                <select data-db-field="${col}" ${isReadOnly ? 'disabled' : ''}>
+                                    <option value="true" ${val === true ? 'selected' : ''}>true</option>
+                                    <option value="false" ${val === false ? 'selected' : ''}>false</option>
+                                </select>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="form-group">
+                            <label>${col} ${isReadOnly ? '<span style="color: var(--text-muted); font-size: 0.75rem;">(read-only)</span>' : ''}</label>
+                            <input type="text" data-db-field="${col}" value="${displayVal.replace(/"/g, '&quot;')}" ${isReadOnly ? 'disabled style="opacity: 0.5;"' : ''}>
+                        </div>
+                    `;
+                }).join('')}
+            </form>
+        `;
+    }
+
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn btn-danger" id="modal-db-delete-btn" style="margin-right: auto;">\ud83d\uddd1\ufe0f Delete Row</button>
+            <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button class="btn btn-primary" id="modal-db-save-btn">\ud83d\udcbe Save Changes</button>
+        `;
+
+        document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
+
+        document.getElementById('modal-db-delete-btn')?.addEventListener('click', () => {
+            closeModal();
+            handleDbDeleteRow(tableName, row, pkCol);
+        });
+
+        document.getElementById('modal-db-save-btn')?.addEventListener('click', async () => {
+            const updates = {};
+            const form = document.getElementById('db-edit-form');
+            if (!form) return;
+
+            form.querySelectorAll('[data-db-field]').forEach(input => {
+                const col = input.getAttribute('data-db-field');
+                if (input.disabled) return;
+
+                let val = input.value;
+
+                // Type coerce
+                if (input.tagName === 'SELECT') {
+                    val = val === 'true';
+                } else if (val === '' || val === 'null') {
+                    val = null;
+                } else if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
+                    try {
+                        val = JSON.parse(val);
+                    } catch {}
+                } else if (!isNaN(val) && val.trim() !== '' && !col.includes('name') && !col.includes('email') && !col.includes('phone') && !col.includes('description') && !col.includes('notes') && !col.includes('reason') && !col.includes('invoice') && !col.includes('vehicle') && !col.includes('contact') && !col.includes('code') && !col.includes('key') && !col.includes('value') && !col.includes('shift_type') && !col.includes('status') && !col.includes('date') && !col.includes('time')) {
+                    val = parseFloat(val);
+                }
+
+                updates[col] = val;
+            });
+
+            if (Object.keys(updates).length === 0) {
+                toast.warning('No changes detected.');
+                return;
+            }
+
+            try {
+                await updateTableRow(tableName, pkValue, updates, pkCol);
+                toast.success(`Row updated in "${tableName}"!`);
+                closeModal();
+                loadDatabaseTable();
+            } catch (err) {
+                toast.error(`Update failed: ${err.message}`);
+            }
+        });
+    }
+
+    openModal();
+}
+
+function openDbInsertModal() {
+    const tableName = dbConsoleState.currentTable;
+    if (!tableName) return;
+
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalFooter = document.getElementById('modal-footer');
+
+    if (modalTitle) modalTitle.textContent = `Insert New Row into "${tableName}"`;
+
+    // Use columns from existing data, or provide a text area for JSON
+    const columns = dbConsoleState.columns.length > 0
+        ? dbConsoleState.columns.filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at')
+        : [];
+
+    if (columns.length > 0) {
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <form id="db-insert-form" onsubmit="return false;" style="max-height: 55vh; overflow-y: auto;">
+                    ${columns.map(col => `
+                        <div class="form-group">
+                            <label>${col}</label>
+                            <input type="text" data-db-field="${col}" placeholder="Enter value\u2026">
+                        </div>
+                    `).join('')}
+                </form>
+            `;
+        }
+    } else {
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div class="form-group">
+                    <label>Row Data (JSON Object)</label>
+                    <textarea id="db-insert-json" rows="10" placeholder='{"column_name": "value", ...}' style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;"></textarea>
+                    <small style="color: var(--text-muted);">Enter a valid JSON object. Table has no existing rows to infer columns from.</small>
+                </div>
+            `;
+        }
+    }
+
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button class="btn btn-primary" id="modal-db-insert-btn">\u2795 Insert Row</button>
+        `;
+
+        document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
+        document.getElementById('modal-db-insert-btn')?.addEventListener('click', async () => {
+            let rowData = {};
+
+            if (columns.length > 0) {
+                const form = document.getElementById('db-insert-form');
+                if (!form) return;
+
+                form.querySelectorAll('[data-db-field]').forEach(input => {
+                    const col = input.getAttribute('data-db-field');
+                    let val = input.value;
+                    if (val === '' || val === 'null') return; // Skip empty fields
+                    if (val === 'true') val = true;
+                    else if (val === 'false') val = false;
+                    else if (typeof val === 'string' && (val.trim().startsWith('{') || val.trim().startsWith('['))) {
+                        try {
+                            val = JSON.parse(val);
+                        } catch {}
+                    } else if (!isNaN(val) && val.trim() !== '' && !col.includes('name') && !col.includes('email') && !col.includes('phone') && !col.includes('description') && !col.includes('notes') && !col.includes('reason') && !col.includes('invoice') && !col.includes('vehicle') && !col.includes('contact') && !col.includes('code') && !col.includes('key') && !col.includes('value') && !col.includes('shift_type') && !col.includes('status') && !col.includes('date') && !col.includes('time')) {
+                        val = parseFloat(val);
+                    }
+                    rowData[col] = val;
+                });
+            } else {
+                const jsonText = document.getElementById('db-insert-json')?.value;
+                try {
+                    rowData = JSON.parse(jsonText);
+                } catch {
+                    toast.error('Invalid JSON format. Please enter a valid JSON object.');
+                    return;
+                }
+            }
+
+            if (Object.keys(rowData).length === 0) {
+                toast.error('Please fill in at least one field.');
+                return;
+            }
+
+            try {
+                await insertTableRow(tableName, rowData);
+                toast.success(`Row inserted into "${tableName}"!`);
+                closeModal();
+                loadDatabaseTable();
+            } catch (err) {
+                toast.error(`Insert failed: ${err.message}`);
+            }
+        });
+    }
+
+    openModal();
+}
+
+async function handleDbDeleteRow(tableName, row, pkCol) {
+    const pkValue = row[pkCol];
+    const displayId = typeof pkValue === 'string' && pkValue.length > 20 ? pkValue.substring(0, 20) + '\u2026' : pkValue;
+
+    const confirmed = window.confirm(
+        `Are you sure you want to DELETE this row from "${tableName}"?\n\n${pkCol}: ${pkValue}\n\nThis action is irreversible and directly modifies Supabase.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await deleteTableRow(tableName, pkValue, pkCol);
+        toast.success(`Row deleted from "${tableName}" (${pkCol}: ${displayId})`);
+        loadDatabaseTable();
+    } catch (err) {
+        toast.error(`Delete failed: ${err.message}`);
+    }
+}

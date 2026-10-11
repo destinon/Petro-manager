@@ -404,6 +404,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 9. PERMISSIONS & ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fuel_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pumps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nozzles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tanks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
@@ -434,6 +435,9 @@ CREATE POLICY "Public access profiles" ON public.profiles FOR ALL USING (true) W
 
 DROP POLICY IF EXISTS "Public access fuel_types" ON public.fuel_types;
 CREATE POLICY "Public access fuel_types" ON public.fuel_types FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access pumps" ON public.pumps;
+CREATE POLICY "Public access pumps" ON public.pumps FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public access nozzles" ON public.nozzles;
 CREATE POLICY "Public access nozzles" ON public.nozzles FOR ALL USING (true) WITH CHECK (true);

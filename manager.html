@@ -95,6 +95,10 @@
             <button class="sidebar-btn" data-mgr-tab="mgr-settings-view">
                 <span>⚙️</span> Settings
             </button>
+            <div style="border-top: 1px solid var(--border-subtle); margin: 8px 0;"></div>
+            <button class="sidebar-btn" data-mgr-tab="mgr-database-view">
+                <span>🗄️</span> Database Console
+            </button>
         </aside>
 
         <!-- Main Content -->
@@ -418,6 +422,53 @@
 
                         <button type="submit" class="btn btn-primary">Save Station Settings</button>
                     </form>
+                </div>
+            </section>
+
+            <!-- TAB 8: DATABASE CONSOLE -->
+            <section id="mgr-database-view" class="mgr-tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2>Database Console</h2>
+                        <p class="subtitle">Direct Supabase table access — Browse, insert, edit, and delete records across all tables.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <select id="db-table-select" style="min-width: 240px;">
+                                <option value="">Select a table…</option>
+                            </select>
+                        </div>
+                        <input type="text" id="db-search-input" placeholder="🔍 Search records…" style="width: 170px; padding: 7px 12px; font-size: 0.85rem;" disabled>
+                        <button id="db-refresh-btn" class="btn btn-secondary" disabled>🔄 Refresh</button>
+                        <button id="db-insert-btn" class="btn btn-primary" disabled>➕ Insert Row</button>
+                    </div>
+                </div>
+
+                <!-- Database Table Info Bar -->
+                <div id="db-info-bar" class="card" style="padding: 12px 18px; margin-bottom: 16px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span id="db-table-icon" style="font-size: 1.4rem;">🗄️</span>
+                            <div>
+                                <strong id="db-table-name" style="font-size: 1.05rem;"></strong>
+                                <span id="db-row-count" class="mono" style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;"></span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="db-prev-page" class="btn btn-secondary btn-sm" disabled>◀ Prev</button>
+                            <span id="db-page-info" class="mono" style="font-size: 0.85rem; align-self: center;"></span>
+                            <button id="db-next-page" class="btn btn-secondary btn-sm" disabled>Next ▶</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Results Table -->
+                <div id="db-results-container" class="table-responsive" style="max-height: 70vh; overflow: auto;">
+                    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                        <div style="font-size: 2.5rem; margin-bottom: 12px;">🗄️</div>
+                        <p style="font-size: 1rem; font-weight: 600;">Select a table from the dropdown above</p>
+                        <p style="font-size: 0.85rem;">You have full read/write/delete access to all PetroCorp Supabase tables.</p>
+                    </div>
                 </div>
             </section>
         </main>
