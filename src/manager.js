@@ -14,6 +14,7 @@ import {
     updateNozzleMasterReading,
     fetchEmployees,
     toggleEmployeeStatus,
+    createEmployee,
     createOperator,
     fetchCustomers,
     createCustomer,
@@ -89,7 +90,9 @@ function setupManagerNavigation() {
     document.getElementById('export-credit-btn')?.addEventListener('click', handleExportCreditLedger);
     document.getElementById('add-customer-modal-btn')?.addEventListener('click', openAddCustomerModal);
     document.getElementById('add-pump-modal-btn')?.addEventListener('click', openAddPumpModal);
-    document.getElementById('add-operator-modal-btn')?.addEventListener('click', openAddOperatorModal);
+    document.getElementById('header-add-employee-btn')?.addEventListener('click', openAddEmployeeModal);
+    document.getElementById('add-employee-modal-btn')?.addEventListener('click', openAddEmployeeModal);
+    document.getElementById('add-operator-modal-btn')?.addEventListener('click', openAddEmployeeModal);
     document.getElementById('modal-close-btn')?.addEventListener('click', closeModal);
     const modalOverlay = document.getElementById('app-modal');
     modalOverlay?.addEventListener('click', (e) => {
@@ -161,7 +164,7 @@ function renderDSSRTables(dssr) {
         section.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-subtle); padding-bottom: 14px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.4rem;">⛽</span>
+                    <span style="display: inline-flex; color: var(--accent-primary);"><svg class="ui-icon" style="width: 1.4rem; height: 1.4rem;" viewBox="0 0 24 24"><path d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9"></path></svg></span>
                     <h3 style="font-size: 1.25rem;">${fr.display_name} (${fr.fuel_type})</h3>
                 </div>
                 <div style="display: flex; gap: 18px; font-size: 0.95rem;">
@@ -654,14 +657,14 @@ async function loadHardwareList() {
                 <td><strong>${n.name}</strong></td>
                 <td><span class="badge-fuel ${badgeClass}">${n.fuel_types?.display_name || fuelName}</span></td>
                 <td class="mono font-weight-bold">${parseFloat(n.master_reading || 0).toFixed(2)}</td>
-                <td><span style="color: ${isActive ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${isActive ? 'Active' : 'Inactive'}</span></td>
+                <td><span class="badge-status ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></td>
                 <td>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary btn-sm" data-edit-nozzle="${n.id}" title="Edit Pump & Meter Settings">
-                            <span>✏️</span> Edit
+                            <svg class="ui-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit
                         </button>
                         <button class="btn btn-danger btn-sm" data-delete-nozzle="${n.id}" data-name="${n.name}" title="Delete Pump & History">
-                            <span>🗑️</span> Delete
+                            <svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete
                         </button>
                     </div>
                 </td>
@@ -711,7 +714,7 @@ function openAddPumpModal() {
     if (modalFooter) {
         modalFooter.innerHTML = `
             <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-            <button class="btn btn-primary" id="save-new-pump-btn">➕ Create Pump</button>
+            <button class="btn btn-primary" id="save-new-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Pump</button>
         `;
 
         document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
@@ -799,9 +802,9 @@ async function openEditPumpModal(nozzleId) {
 
         if (modalFooter) {
             modalFooter.innerHTML = `
-                <button class="btn btn-danger" id="modal-delete-pump-btn" style="margin-right: auto;">🗑️ Delete Pump & History</button>
+                <button class="btn btn-danger" id="modal-delete-pump-btn" style="margin-right: auto;"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Pump & History</button>
                 <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-                <button class="btn btn-primary" id="save-edit-pump-btn">💾 Save Changes</button>
+                <button class="btn btn-primary" id="save-edit-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Changes</button>
             `;
 
             document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
@@ -902,8 +905,8 @@ async function loadCreditLedger() {
                 <td class="mono" style="color: var(--success);">${formatCurrency(c.total_repayments || 0)}</td>
                 <td class="mono" style="color: ${outColor}; font-weight: 700; font-size: 1rem;">${formatCurrency(outstanding)}</td>
                 <td>
-                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" data-repay-cust="${c.id}" data-name="${c.name}">💵 Repay</button>
-                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" data-hist-cust="${c.id}" data-name="${c.name}">📜 History</button>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" data-repay-cust="${c.id}" data-name="${c.name}"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle></svg> Repay</button>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" data-hist-cust="${c.id}" data-name="${c.name}"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> History</button>
                 </td>
             `;
 
@@ -1163,7 +1166,7 @@ async function loadEmployeesRoster() {
             if (e.role === 'operator') {
                 const assignedIds = await fetchOperatorNozzleAssignments(e.id);
                 if (!assignedIds || assignedIds.length === 0) {
-                    assignedPumpsHtml = '<span style="color: var(--danger); font-weight: 600; font-size: 0.85rem;">🔒 No Pumps (Blocked)</span>';
+                    assignedPumpsHtml = '<span style="color: var(--danger); font-weight: 600; font-size: 0.85rem;"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> No Pumps (Blocked)</span>';
                 } else {
                     const assignedNames = activeNozzles
                         .filter(n => assignedIds.includes(parseInt(n.id)))
@@ -1178,10 +1181,10 @@ async function loadEmployeesRoster() {
                 <td><span class="user-role-badge ${e.role === 'manager' ? 'role-manager' : 'role-operator'}">${e.role}</span></td>
                 <td>${e.phone || '-'}</td>
                 <td><div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px;">${assignedPumpsHtml}</div></td>
-                <td><span style="color: ${isActive ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${isActive ? 'Active' : 'Deactivated'}</span></td>
+                <td><span class="badge-status ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Deactivated'}</span></td>
                 <td>
                     <div style="display: flex; gap: 6px;">
-                        ${e.role === 'operator' ? `<button class="btn btn-primary btn-sm" data-assign-emp="${e.id}" title="Assign Dispenser Bays">⚙️ Assign</button>` : ''}
+                        ${e.role === 'operator' ? `<button class="btn btn-primary btn-sm" data-assign-emp="${e.id}" title="Assign Dispenser Bays"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Assign</button>` : ''}
                         <button class="btn btn-secondary btn-sm" data-toggle-emp="${e.id}" data-active="${isActive}">
                             ${isActive ? 'Deactivate' : 'Activate'}
                         </button>
@@ -1291,12 +1294,12 @@ function setupOperatorPumpAssignmentEvents() {
     });
 }
 
-async function openAddOperatorModal() {
+async function openAddEmployeeModal() {
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalFooter = document.getElementById('modal-footer');
 
-    if (modalTitle) modalTitle.textContent = 'Add New Station Operator';
+    if (modalTitle) modalTitle.textContent = 'Add Station Employee';
 
     // Fetch available nozzles for pump assignment checklist
     let activeNozzles = [];
@@ -1304,7 +1307,7 @@ async function openAddOperatorModal() {
         const nozzles = await fetchNozzles();
         activeNozzles = (nozzles || []).filter(n => n.is_active !== false);
     } catch (err) {
-        console.warn('Could not load nozzles for operator modal:', err);
+        console.warn('Could not load nozzles for employee modal:', err);
     }
 
     const nozzlesChecklistHtml = activeNozzles.length > 0
@@ -1312,7 +1315,7 @@ async function openAddOperatorModal() {
             const fuelName = n.fuel_types?.name || (n.name.includes('MS') ? 'MS' : 'HSD');
             return `
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; cursor: pointer;">
-                    <input type="checkbox" value="${n.id}" class="new-op-pump-cb">
+                    <input type="checkbox" value="${n.id}" class="new-emp-pump-cb">
                     <span>${n.name} <small class="badge-fuel ${fuelName === 'MS' ? 'fuel-ms' : 'fuel-hsd'}" style="font-size: 0.7rem;">${fuelName}</small></span>
                 </label>
             `;
@@ -1321,126 +1324,160 @@ async function openAddOperatorModal() {
 
     if (modalBody) {
         modalBody.innerHTML = `
-            <form id="new-operator-form" onsubmit="return false;">
+            <form id="new-employee-form" onsubmit="return false;">
                 <div class="form-group">
-                    <label for="new-op-name">Operator Full Name <span style="color: var(--danger)">*</span></label>
-                    <input type="text" id="new-op-name" required placeholder="e.g. Ramesh Kumar">
+                    <label for="new-emp-role">Employee Role <span style="color: var(--danger)">*</span></label>
+                    <select id="new-emp-role" required style="font-weight: 600;">
+                        <option value="operator" selected>Station Operator (Fuel Dispenser Access)</option>
+                        <option value="manager">Station Manager / Admin (Full Console Access)</option>
+                    </select>
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">Operators enter shift meter readings. Managers oversee DSSR, approvals, and station configuration.</small>
                 </div>
                 <div class="form-group">
-                    <label for="new-op-email">Work Email / Login Identifier <span style="color: var(--danger)">*</span></label>
-                    <input type="email" id="new-op-email" required placeholder="e.g. ramesh.op@petrocorp.com">
-                    <small style="color: var(--text-muted); font-size: 0.78rem;">Used by the operator to sign into the PetroCorp terminal.</small>
+                    <label for="new-emp-name">Employee Full Name <span style="color: var(--danger)">*</span></label>
+                    <input type="text" id="new-emp-name" required placeholder="e.g. Ramesh Kumar">
                 </div>
                 <div class="form-group">
-                    <label for="new-op-phone">Contact Mobile Number</label>
-                    <input type="tel" id="new-op-phone" placeholder="e.g. +91 98765 43210">
+                    <label for="new-emp-email">Work Email / Login Identifier <span style="color: var(--danger)">*</span></label>
+                    <input type="email" id="new-emp-email" required placeholder="e.g. ramesh.op@petrocorp.com">
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">Used by the employee to log in to the PetroCorp portal.</small>
                 </div>
                 <div class="form-group">
-                    <label for="new-op-password">Initial Password <span style="color: var(--danger)">*</span></label>
+                    <label for="new-emp-phone">Contact Mobile Number</label>
+                    <input type="tel" id="new-emp-phone" placeholder="e.g. +91 98765 43210">
+                </div>
+                <div class="form-group">
+                    <label for="new-emp-password">Initial Password <span style="color: var(--danger)">*</span></label>
                     <div style="position: relative;">
-                        <input type="password" id="new-op-password" required value="" placeholder="Initial password (min 6 characters)">
-                        <button type="button" id="toggle-new-op-pw-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.9rem;" title="Toggle password visibility">👁️</button>
+                        <input type="password" id="new-emp-password" required value="" placeholder="Initial password (min 6 characters)">
+                        <button type="button" id="toggle-new-emp-pw-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center;" title="Toggle password visibility"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
                     </div>
-                    <small style="color: var(--text-muted); font-size: 0.78rem;">Provide a secure initial password for the operator's first sign-in.</small>
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">Provide an initial temporary password for first sign-in.</small>
                 </div>
-                <div class="form-group" style="margin-top: 16px;">
+                <div id="new-emp-pumps-group" class="form-group" style="margin-top: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label style="font-weight: 600; font-size: 0.88rem; margin: 0;">Authorized Dispenser Pumps</label>
                         <div style="display: flex; gap: 6px;">
-                            <button type="button" class="btn btn-secondary btn-sm" id="new-op-select-all" style="padding: 2px 8px; font-size: 0.75rem;">All</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="new-op-clear-all" style="padding: 2px 8px; font-size: 0.75rem;">None</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="new-emp-select-all" style="padding: 2px 8px; font-size: 0.75rem;">All</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="new-emp-clear-all" style="padding: 2px 8px; font-size: 0.75rem;">None</button>
                         </div>
                     </div>
-                    <div id="new-op-pumps-checklist" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; padding: 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px;">
+                    <div id="new-emp-pumps-checklist" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; padding: 10px; background: var(--bg-surface-muted); border: 1px solid var(--border-subtle); border-radius: 6px;">
                         ${nozzlesChecklistHtml}
                     </div>
                     <small style="color: var(--text-muted); font-size: 0.78rem;">Assigned pumps will be immediately accessible in their shift console.</small>
                 </div>
+                <div id="new-emp-manager-note" class="form-group hidden" style="margin-top: 14px; padding: 12px; background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 6px;">
+                    <p style="font-size: 0.82rem; color: var(--accent-primary); margin: 0;">
+                        ℹ️ <strong>Manager Role Selected:</strong> Managers have administrative access to all station functions. Dispenser pump assignment is optional and not required.
+                    </p>
+                </div>
             </form>
         `;
 
-        document.getElementById('toggle-new-op-pw-btn')?.addEventListener('click', () => {
-            const pwInput = document.getElementById('new-op-password');
+        const roleSelect = document.getElementById('new-emp-role');
+        const pumpsGroup = document.getElementById('new-emp-pumps-group');
+        const mgrNote = document.getElementById('new-emp-manager-note');
+
+        roleSelect?.addEventListener('change', () => {
+            if (roleSelect.value === 'manager') {
+                pumpsGroup?.classList.add('hidden');
+                mgrNote?.classList.remove('hidden');
+            } else {
+                pumpsGroup?.classList.remove('hidden');
+                mgrNote?.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('toggle-new-emp-pw-btn')?.addEventListener('click', () => {
+            const pwInput = document.getElementById('new-emp-password');
             if (pwInput) {
                 pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
             }
         });
 
-        document.getElementById('new-op-select-all')?.addEventListener('click', () => {
-            document.querySelectorAll('.new-op-pump-cb').forEach(cb => cb.checked = true);
+        document.getElementById('new-emp-select-all')?.addEventListener('click', () => {
+            document.querySelectorAll('.new-emp-pump-cb').forEach(cb => cb.checked = true);
         });
 
-        document.getElementById('new-op-clear-all')?.addEventListener('click', () => {
-            document.querySelectorAll('.new-op-pump-cb').forEach(cb => cb.checked = false);
+        document.getElementById('new-emp-clear-all')?.addEventListener('click', () => {
+            document.querySelectorAll('.new-emp-pump-cb').forEach(cb => cb.checked = false);
         });
     }
 
     if (modalFooter) {
         modalFooter.innerHTML = `
             <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-            <button class="btn btn-primary" id="save-new-op-btn">
-                <span>➕</span> Add Operator
+            <button class="btn btn-primary" id="save-new-emp-btn">
+                <svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Employee
             </button>
         `;
 
         document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
-        document.getElementById('save-new-op-btn')?.addEventListener('click', async () => {
-            const name = document.getElementById('new-op-name')?.value?.trim();
-            const email = document.getElementById('new-op-email')?.value?.trim();
-            const phone = document.getElementById('new-op-phone')?.value?.trim();
-            const password = document.getElementById('new-op-password')?.value;
+        document.getElementById('save-new-emp-btn')?.addEventListener('click', async () => {
+            const role = document.getElementById('new-emp-role')?.value || 'operator';
+            const name = document.getElementById('new-emp-name')?.value?.trim();
+            const email = document.getElementById('new-emp-email')?.value?.trim();
+            const phone = document.getElementById('new-emp-phone')?.value?.trim();
+            const password = document.getElementById('new-emp-password')?.value;
 
             if (!name) {
-                toast.error('Operator Full Name is required.');
-                document.getElementById('new-op-name')?.focus();
+                toast.error('Employee Full Name is required.');
+                document.getElementById('new-emp-name')?.focus();
                 return;
             }
 
             if (!email || !email.includes('@') || !email.includes('.')) {
-                toast.error('Please enter a valid email address.');
-                document.getElementById('new-op-email')?.focus();
+                toast.error('Please enter a valid work email address.');
+                document.getElementById('new-emp-email')?.focus();
                 return;
             }
 
             if (!password || password.length < 6) {
                 toast.error('Password must be at least 6 characters long.');
-                document.getElementById('new-op-password')?.focus();
+                document.getElementById('new-emp-password')?.focus();
                 return;
             }
 
-            const selectedNozzleIds = Array.from(document.querySelectorAll('.new-op-pump-cb:checked'))
-                .map(cb => parseInt(cb.value));
+            const selectedNozzleIds = role === 'operator'
+                ? Array.from(document.querySelectorAll('.new-emp-pump-cb:checked')).map(cb => parseInt(cb.value))
+                : [];
 
-            const saveBtn = document.getElementById('save-new-op-btn');
+            const saveBtn = document.getElementById('save-new-emp-btn');
             if (saveBtn) {
                 saveBtn.disabled = true;
-                saveBtn.textContent = 'Registering Operator...';
+                saveBtn.textContent = 'Registering Employee...';
             }
 
             try {
-                const newOp = await createOperator({
+                const newEmp = await createEmployee({
                     full_name: name,
                     email,
                     phone,
+                    role,
                     password,
                     nozzle_ids: selectedNozzleIds
                 });
 
-                toast.success(`Operator "${name}" registered successfully!`);
+                const roleTitle = role === 'manager' ? 'Station Manager' : 'Station Operator';
+                toast.success(`${roleTitle} "${name}" registered successfully!`);
                 closeModal();
+
+                // Switch to employees roster tab to show the new addition
+                switchManagerTab('mgr-employees-view');
                 await loadEmployeesRoster();
 
                 const assignSelect = document.getElementById('assign-operator-select');
-                if (assignSelect && newOp?.id) {
-                    assignSelect.value = newOp.id;
-                    renderOperatorPumpCheckboxes(newOp.id);
+                if (assignSelect && newEmp?.id && role === 'operator') {
+                    assignSelect.value = newEmp.id;
+                    renderOperatorPumpCheckboxes(newEmp.id);
                 }
             } catch (err) {
-                console.error('Error creating operator:', err);
-                toast.error('Failed to register operator: ' + err.message);
+                console.error('Error creating employee:', err);
+                toast.error('Failed to register employee: ' + err.message);
                 if (saveBtn) {
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<span>➕</span> Add Operator';
+                    saveBtn.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Employee';
                 }
             }
         });
@@ -1449,7 +1486,10 @@ async function openAddOperatorModal() {
     openModal();
 }
 
+const openAddOperatorModal = openAddEmployeeModal;
+
 // Modal Utility Helpers
+
 function openModal() {
     document.getElementById('app-modal')?.classList.remove('hidden');
 }
@@ -1482,7 +1522,7 @@ function setupDatabaseConsole() {
     dbConsoleState.tablesMeta.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.name;
-        opt.textContent = `${t.icon} ${t.display}`;
+        opt.textContent = t.display;
         tableSelect.appendChild(opt);
     });
 
@@ -1562,12 +1602,35 @@ async function loadDatabaseTable() {
         const pkCol = tableName === 'station_settings' ? 'key' : 'id';
         const orderBy = tableName === 'station_settings' ? 'key' : 'id';
 
-        const { rows, totalCount } = await fetchTableData(tableName, {
+        const { rows, totalCount, tableMissing } = await fetchTableData(tableName, {
             limit: dbConsoleState.pageSize,
             offset: dbConsoleState.currentPage * dbConsoleState.pageSize,
             orderBy,
             ascending: true
         });
+
+        if (tableMissing) {
+            if (container) {
+                container.innerHTML = `
+                    <div class="card" style="margin: 20px; padding: 24px; border-left: 4px solid var(--warning); background: var(--warning-bg);">
+                        <h4 style="color: var(--warning); margin-bottom: 8px;">Table "${tableName}" Not Migrated in Supabase</h4>
+                        <p style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-primary);">
+                            This table has not been created in your Supabase database schema yet. PetroCorp is using its resilient built-in operational fallback so station workflows continue seamlessly.
+                        </p>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                            To create all 18 tables and foreign keys in Supabase, run <code>COMPLETE_SUPABASE_SETUP.sql</code> in your Supabase SQL Editor.
+                        </p>
+                    </div>
+                `;
+            }
+            const rowCountEl = document.getElementById('db-row-count');
+            const pageInfoEl = document.getElementById('db-page-info');
+            const insertBtn = document.getElementById('db-insert-btn');
+            if (rowCountEl) rowCountEl.textContent = 'Not migrated';
+            if (pageInfoEl) pageInfoEl.textContent = '';
+            if (insertBtn) insertBtn.disabled = true;
+            return;
+        }
 
         dbConsoleState.rows = rows;
         dbConsoleState.totalCount = totalCount;
@@ -1581,7 +1644,7 @@ async function loadDatabaseTable() {
         const prevBtn = document.getElementById('db-prev-page');
         const nextBtn = document.getElementById('db-next-page');
 
-        if (tableIcon) tableIcon.textContent = meta?.icon || '\ud83d\uddc4\ufe0f';
+        if (tableIcon) tableIcon.innerHTML = '<svg class="ui-icon" style="width: 1.4rem; height: 1.4rem;" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>';
         if (tableNameEl) tableNameEl.textContent = meta?.display || tableName;
         if (rowCountEl) rowCountEl.textContent = `${totalCount} row${totalCount !== 1 ? 's' : ''}`;
 
@@ -1594,7 +1657,7 @@ async function loadDatabaseTable() {
             if (container) {
                 container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">
                     <p style="font-weight: 600;">Table "${tableName}" is empty</p>
-                    <p style="font-size: 0.85rem;">Click "➕ Insert Row" to add data.</p>
+                    <p style="font-size: 0.85rem;">Click "Insert Row" to add data.</p>
                 </div>`;
             }
             return;

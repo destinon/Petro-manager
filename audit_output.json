@@ -1,0 +1,289 @@
+{
+  "authenticatedUser": {
+    "id": "f40eb1ec-31bf-467b-8592-00f5d1c157b0",
+    "email": "destinon075@gmail.com",
+    "profile": {
+      "id": "f40eb1ec-31bf-467b-8592-00f5d1c157b0",
+      "email": "destinon075@gmail.com",
+      "full_name": "destinon075",
+      "role": "manager",
+      "phone": null,
+      "created_at": "2026-10-11T16:46:45.058383+00:00",
+      "updated_at": "2026-10-11T16:46:45.058383+00:00"
+    }
+  },
+  "tables": [
+    {
+      "table": "profiles",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": false,
+      "writeError": "invalid input syntax for type uuid: \"-999999\""
+    },
+    {
+      "table": "employees",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": false,
+      "writeError": "invalid input syntax for type uuid: \"-999999\""
+    },
+    {
+      "table": "fuel_types",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "pumps",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.pumps' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "nozzles",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "tanks",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "shift_types",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "payment_methods",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.payment_methods' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "expense_categories",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.expense_categories' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "station_settings",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": false,
+      "writeError": "column station_settings.id does not exist"
+    },
+    {
+      "table": "daily_rates",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "fuel_rates",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.fuel_rates' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "shifts",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": false,
+      "writeError": "invalid input syntax for type uuid: \"-999999\""
+    },
+    {
+      "table": "shift_readings",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "shift_nozzle_readings",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.shift_nozzle_readings' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "shift_rate_snapshots",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.shift_rate_snapshots' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "shift_payments",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.shift_payments' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "shift_expenses",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.shift_expenses' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "customers",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.customers' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "credit_transactions",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.credit_transactions' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "tank_dip_readings",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.tank_dip_readings' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "tank_readings",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "fuel_receipts",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.fuel_receipts' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "fuel_deliveries",
+      "exists": true,
+      "readStatus": "OK",
+      "readError": null,
+      "canWrite": true,
+      "writeError": null
+    },
+    {
+      "table": "tank_calibrations",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.tank_calibrations' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "bank_reconciliations",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.bank_reconciliations' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "audit_logs",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.audit_logs' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "operator_nozzle_assignments",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.operator_nozzle_assignments' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "customer_balances",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.customer_balances' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    },
+    {
+      "table": "station_info",
+      "exists": false,
+      "readStatus": "ERROR",
+      "readError": "Could not find the table 'public.station_info' in the schema cache",
+      "canWrite": false,
+      "writeError": null
+    }
+  ],
+  "rpcs": [
+    {
+      "rpc": "get_user_role",
+      "exists": true,
+      "status": "OK"
+    },
+    {
+      "rpc": "is_manager",
+      "exists": false,
+      "status": "Could not find the function public.is_manager without parameters in the schema cache"
+    },
+    {
+      "rpc": "get_shift_summary",
+      "exists": false,
+      "status": "Could not find the function public.get_shift_summary without parameters in the schema cache"
+    },
+    {
+      "rpc": "record_shift_submission",
+      "exists": false,
+      "status": "Could not find the function public.record_shift_submission without parameters in the schema cache"
+    },
+    {
+      "rpc": "get_dashboard_stats",
+      "exists": false,
+      "status": "Could not find the function public.get_dashboard_stats without parameters in the schema cache"
+    },
+    {
+      "rpc": "close_shift",
+      "exists": false,
+      "status": "Could not find the function public.close_shift without parameters in the schema cache"
+    }
+  ]
+}

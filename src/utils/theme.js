@@ -12,10 +12,8 @@ export function getPreferredTheme() {
         if (saved === 'dark' || saved === 'light') {
             return saved;
         }
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
     } catch (e) {}
+    // Default to clean crisp white light theme
     return 'light';
 }
 
@@ -75,15 +73,6 @@ export function initThemeController() {
             applyTheme(e.newValue);
         }
     });
-
-    // 4. Listen to OS system preference changes (if user hasn't explicitly set preference)
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem(STORAGE_KEY)) {
-                applyTheme(e.matches ? 'dark' : 'light');
-            }
-        });
-    }
 
     return initialTheme;
 }

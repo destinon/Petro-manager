@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
     <title>PetroCorp - Station Management Portal</title>
     <meta name="description"
         content="PetroCorp Station Manager - Enterprise fuel station management and operations portal">
@@ -17,9 +18,6 @@
         (function () {
             try {
                 var saved = localStorage.getItem('petrocorp-theme');
-                if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    saved = 'dark';
-                }
                 var theme = saved === 'dark' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
                 document.documentElement.style.colorScheme = theme;

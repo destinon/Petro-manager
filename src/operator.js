@@ -212,7 +212,7 @@ async function setupShiftCreationOptions(today) {
         if (ratesInfo) {
             ratesInfo.innerHTML = `
                 <div class="alert-box alert-error" style="margin-top: 8px;">
-                    <strong>⚠️ Daily Fuel Rates Not Published</strong><br>
+                    <strong>Daily Fuel Rates Not Published</strong><br>
                     Fuel rates for today (${today}) have not been entered by the Station Manager.<br>
                     <small>Please contact the Station Manager to publish today's MS & HSD rates before starting this shift.</small>
                 </div>
@@ -233,7 +233,7 @@ async function setupShiftCreationOptions(today) {
         });
         if (ratesInfo) {
             ratesInfo.innerHTML = `
-                <span style="color: var(--success); font-weight: 700;">✓ Today's Manager-Entered Rates:</span> 
+                <span style="color: var(--success); font-weight: 700;">Today's Manager-Entered Rates:</span> 
                 MS: <strong>${formatCurrency(shiftState.rates.MS)}</strong> • HSD: <strong>${formatCurrency(shiftState.rates.HSD)}</strong>
             `;
         }
@@ -336,7 +336,7 @@ async function loadNozzleCards(shift) {
         if (!nozzles || nozzles.length === 0) {
             container.innerHTML = `
                 <div class="card" style="padding: 36px 20px; text-align: center; grid-column: 1 / -1; background: var(--bg-surface);">
-                    <div style="font-size: 2.4rem; margin-bottom: 12px;">🔒</div>
+                    <div style="display: inline-flex; justify-content: center; margin-bottom: 12px; color: var(--text-muted);"><svg class="ui-icon" style="width: 2.4rem; height: 2.4rem;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                     <h3 style="font-size: 1.25rem; margin-bottom: 8px;">No Dispenser Pumps Assigned</h3>
                     <p style="color: var(--text-secondary); max-width: 460px; margin: 0 auto 16px; font-size: 0.92rem;">
                         The Station Manager has not assigned any dispenser bays or nozzles to your account.
@@ -376,10 +376,10 @@ async function loadNozzleCards(shift) {
             card.innerHTML = `
                 <div class="nozzle-header">
                     <div class="nozzle-title" style="display: flex; align-items: center; gap: 8px;">
-                        <span>⛽</span>
+                        <span style="display: inline-flex; color: var(--accent-primary);"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9"></path></svg></span>
                         <span>${nozzle.name}</span>
-                        <button class="btn btn-icon op-card-edit-btn" data-edit-nozzle="${nozzle.id}" title="Edit ${nozzle.name} & Reading History" style="padding: 2px 6px; font-size: 0.85rem; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface-muted); cursor: pointer;">
-                            ✏️
+                        <button class="btn btn-icon op-card-edit-btn" data-edit-nozzle="${nozzle.id}" title="Edit ${nozzle.name} & Reading History" style="padding: 3px 6px; display: inline-flex; align-items: center; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface-muted); cursor: pointer;">
+                            <svg class="ui-icon" style="width: 0.85rem; height: 0.85rem;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
                     </div>
                     <span class="badge-fuel ${badgeClass}">${fuelName} @ ${formatCurrency(rate)}</span>
@@ -547,7 +547,7 @@ async function saveAllMeterReadings() {
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.textContent = '💾 Save Meter Readings';
+            saveBtn.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Meter Readings';
         }
     }
 }
@@ -932,7 +932,7 @@ function openAddPumpModal() {
     if (modalFooter) {
         modalFooter.innerHTML = `
             <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-            <button class="btn btn-primary" id="save-new-pump-btn">➕ Create Pump</button>
+            <button class="btn btn-primary" id="save-new-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Pump</button>
         `;
 
         document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
@@ -1019,9 +1019,9 @@ async function openEditPumpModal(nozzleId) {
 
         if (modalFooter) {
             modalFooter.innerHTML = `
-                <button class="btn btn-danger" id="modal-delete-pump-btn" style="margin-right: auto;">🗑️ Delete Pump & History</button>
+                <button class="btn btn-danger" id="modal-delete-pump-btn" style="margin-right: auto;"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Pump & History</button>
                 <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-                <button class="btn btn-primary" id="save-edit-pump-btn">💾 Save Changes</button>
+                <button class="btn btn-primary" id="save-edit-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Changes</button>
             `;
 
             document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
@@ -1104,7 +1104,7 @@ async function openManagePumpsModal() {
             modalBody.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                     <p style="margin: 0; color: var(--text-secondary); font-size: 0.88rem;">Configure dispensers, edit meter calibrations, or delete pumps.</p>
-                    <button class="btn btn-primary btn-sm" id="modal-sub-add-pump-btn">➕ Add New Pump</button>
+                    <button class="btn btn-primary btn-sm" id="modal-sub-add-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add New Pump</button>
                 </div>
                 <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
                     <table class="data-table" style="font-size: 0.85rem;">
@@ -1126,8 +1126,8 @@ async function openManagePumpsModal() {
                                     <td><span style="color: ${n.is_active !== false ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${n.is_active !== false ? 'Active' : 'Inactive'}</span></td>
                                     <td>
                                         <div style="display: flex; gap: 6px;">
-                                            <button class="btn btn-secondary btn-sm" data-modal-edit="${n.id}">✏️ Edit</button>
-                                            <button class="btn btn-danger btn-sm" data-modal-del="${n.id}" data-name="${n.name}">🗑️ Delete</button>
+                                            <button class="btn btn-secondary btn-sm" data-modal-edit="${n.id}"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</button>
+                                            <button class="btn btn-danger btn-sm" data-modal-del="${n.id}" data-name="${n.name}"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete</button>
                                         </div>
                                     </td>
                                 </tr>
