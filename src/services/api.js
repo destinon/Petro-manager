@@ -4,6 +4,73 @@
 import { supabase, createClient, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabase.js';
 
 // ==========================================
+// REALTIME LIVE SYNC DUAL ENGINE (BROADCAST + POSTGRES_CHANGES)
+// ==========================================
+
+export const liveSyncChannel = supabase.channel('petrocorp-live-sync', {
+    config: {
+        broadcast: { self: false }
+    }
+});
+
+const syncListeners = new Set();
+let debounceTimer = null;
+
+export function onDataSync(callback) {
+    syncListeners.add(callback);
+    return () => syncListeners.delete(callback);
+}
+
+export function broadcastMutation(entity, action, data = {}) {
+    try {
+        if (liveSyncChannel) {
+            liveSyncChannel.send({
+                type: 'broadcast',
+                event: 'data-mutated',
+                payload: { entity, action, data, timestamp: Date.now() }
+            }).catch(err => console.warn('Broadcast send notice:', err));
+        }
+    } catch (err) {
+        console.warn('Broadcast notice:', err);
+    }
+}
+
+let isRealtimeInitialized = false;
+export function initRealtimeSync() {
+    if (isRealtimeInitialized) return;
+    isRealtimeInitialized = true;
+
+    liveSyncChannel
+        .on('broadcast', { event: 'data-mutated' }, (payload) => {
+            console.log('[Realtime Broadcast received]:', payload);
+            notifySync({ source: 'broadcast', ...(payload.payload || {}) });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+            console.log('[Postgres Change received]:', payload.table, payload.eventType);
+            notifySync({
+                source: 'postgres_changes',
+                entity: payload.table,
+                action: payload.eventType,
+                table: payload.table,
+                new: payload.new,
+                old: payload.old
+            });
+        })
+        .subscribe((status) => {
+            console.log('[Live Sync Channel Status]:', status);
+        });
+}
+
+function notifySync(detail) {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        syncListeners.forEach(cb => {
+            try { cb(detail); } catch (e) { console.error('Sync listener error:', e); }
+        });
+    }, 250);
+}
+
+// ==========================================
 // 1. AUTH & PROFILES
 // ==========================================
 
@@ -165,6 +232,9 @@ export async function toggleEmployeeStatus(id, isActive) {
             }
         } catch {}
 
+        if (updated) {
+            broadcastMutation('employees', 'update', { id, is_active: isActive });
+        }
         return updated;
     } catch (err) {
         console.warn('DB toggle notice:', err);
@@ -263,7 +333,7 @@ export async function createEmployee({ full_name, email, password, phone, role =
         await saveOperatorNozzleAssignments(userId, nozzle_ids);
     }
 
-    return {
+    const createdRecord = {
         id: userId,
         full_name: full_name.trim(),
         email: cleanEmail,
@@ -271,6 +341,8 @@ export async function createEmployee({ full_name, email, password, phone, role =
         role: cleanRole,
         is_active: true
     };
+    broadcastMutation('employees', 'insert', createdRecord);
+    return createdRecord;
 }
 
 // Backward-compatible alias
@@ -395,6 +467,7 @@ export async function createNozzle({ name, fuel_type_id, master_reading }) {
 
     nozzles.push(newNozzle);
     localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(nozzles));
+    broadcastMutation('nozzles', 'insert', newNozzle);
     return newNozzle;
 }
 
@@ -428,6 +501,7 @@ export async function updateNozzle(nozzleId, { name, fuel_type_id, master_readin
     } catch {}
 
     localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(nozzles));
+    broadcastMutation('nozzles', 'update', nozzles[index]);
     return nozzles[index];
 }
 
@@ -462,6 +536,7 @@ export async function deleteNozzle(nozzleId, deleteHistory = true) {
     }
 
     localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(filtered));
+    broadcastMutation('nozzles', 'delete', { id });
     return true;
 }
 
@@ -507,6 +582,7 @@ export async function saveOperatorNozzleAssignments(operatorId, nozzleIds) {
     } catch (err) {
         console.warn('Notice saving operator pump assignments to DB:', err);
     }
+    broadcastMutation('operator_nozzle_assignments', 'update', { operatorId, nozzleIds: ids });
     return ids;
 }
 
@@ -621,6 +697,7 @@ export async function updateStationSetting(key, value) {
         .from('station_settings')
         .upsert({ key, value }, { onConflict: 'key' });
     if (error) throw error;
+    broadcastMutation('station_settings', 'update', { key, value });
 }
 
 // ==========================================
@@ -713,7 +790,10 @@ export async function saveDailyRates(date, ratesArray, userId) {
         const { error: wideErr } = await supabase
             .from('daily_rates')
             .upsert([{ date, ms_rate: parseFloat(msRate || 0), hsd_rate: parseFloat(hsdRate || 0) }], { onConflict: 'date' });
-        if (!wideErr) return;
+        if (!wideErr) {
+            broadcastMutation('daily_rates', 'update', { date, ratesArray });
+            return;
+        }
     } catch {}
 
     try {
@@ -724,6 +804,7 @@ export async function saveDailyRates(date, ratesArray, userId) {
     } catch (err) {
         console.warn('Notice saving daily rates to DB:', err);
     }
+    broadcastMutation('daily_rates', 'update', { date, ratesArray });
 }
 
 // ==========================================
@@ -840,37 +921,40 @@ export async function createShift({ date, shift_type_id, operator_id, rates }) {
         await supabase.from('shift_rate_snapshots').insert(snapshots);
     } catch {}
 
+    broadcastMutation('shifts', 'insert', shift);
     return shift;
 }
 
 export async function saveNozzleReading(shiftId, readingData) {
+    const netQty = parseFloat(readingData.closing_reading) - parseFloat(readingData.opening_reading) - parseFloat(readingData.testing_qty || 0);
     const payload = {
         shift_id: shiftId,
         nozzle_id: readingData.nozzle_id,
         opening_reading: parseFloat(readingData.opening_reading),
         closing_reading: parseFloat(readingData.closing_reading),
         testing_qty: parseFloat(readingData.testing_qty || 0),
+        net_sale_qty: Math.max(0, netQty),
         rate: parseFloat(readingData.rate),
         sales_amount: parseFloat(readingData.sales_amount)
     };
 
-    // Try shift_nozzle_readings
+    // 1. Primary canonical table: shift_readings
     let res = await supabase
-        .from('shift_nozzle_readings')
+        .from('shift_readings')
         .upsert(payload, { onConflict: 'shift_id, nozzle_id' });
 
     if (res.error) {
-        // Try shift_readings with net_sale_qty
-        const netQty = payload.closing_reading - payload.opening_reading - payload.testing_qty;
+        // Fallback to shift_nozzle_readings
         res = await supabase
-            .from('shift_readings')
+            .from('shift_nozzle_readings')
             .upsert({
                 shift_id: shiftId,
                 nozzle_id: payload.nozzle_id,
                 opening_reading: payload.opening_reading,
                 closing_reading: payload.closing_reading,
                 testing_qty: payload.testing_qty,
-                net_sale_qty: netQty
+                rate: payload.rate,
+                sales_amount: payload.sales_amount
             }, { onConflict: 'shift_id, nozzle_id' });
     }
 
@@ -881,6 +965,8 @@ export async function saveNozzleReading(shiftId, readingData) {
         stored[readingData.nozzle_id] = payload;
         localStorage.setItem(key, JSON.stringify(stored));
     } catch {}
+
+    broadcastMutation('shift_readings', 'update', { shiftId, nozzleId: readingData.nozzle_id, payload });
 
     return res;
 }
@@ -902,6 +988,8 @@ export async function saveShiftPayments(shiftId, paymentsMap) {
     try {
         localStorage.setItem(`petrocorp_shift_${shiftId}_payments`, JSON.stringify(paymentsMap));
     } catch {}
+
+    broadcastMutation('shift_payments', 'update', { shiftId, paymentsMap });
 }
 
 export async function submitShift(shiftId, { totalSales, totalDeductions, extraShort, notes }) {
@@ -933,6 +1021,7 @@ export async function submitShift(shiftId, { totalSales, totalDeductions, extraS
     }
 
     if (res.error) throw res.error;
+    broadcastMutation('shifts', 'update', { shiftId, status: 'submitted' });
     return res.data;
 }
 
@@ -948,6 +1037,7 @@ export async function saveShiftExpense(shiftId, { category_id, amount, descripti
         .select()
         .single();
     if (error) throw error;
+    broadcastMutation('shift_expenses', 'insert', data);
     return data;
 }
 
@@ -966,6 +1056,7 @@ export async function deleteShiftExpense(expenseId) {
         .delete()
         .eq('id', expenseId);
     if (error) throw error;
+    broadcastMutation('shift_expenses', 'delete', { id: expenseId });
 }
 
 
@@ -982,6 +1073,7 @@ export async function saveShiftAsDraft(shiftId, { totalSales, totalDeductions, e
         .eq('id', shiftId);
 
     if (error) throw error;
+    broadcastMutation('shifts', 'update', { shiftId, status: 'draft' });
     return data;
 }
 
@@ -1050,11 +1142,25 @@ export async function approveShift(shiftId, managerId) {
 
     if (shiftErr) throw shiftErr;
 
-    // 2. Advance nozzle master readings based on shift closing readings
-    const { data: readings } = await supabase
-        .from('shift_nozzle_readings')
-        .select('nozzle_id, closing_reading')
-        .eq('shift_id', shiftId);
+    // 2. Advance nozzle master readings: query canonical shift_readings first, fallback to shift_nozzle_readings
+    let readings = null;
+    try {
+        const { data } = await supabase
+            .from('shift_readings')
+            .select('nozzle_id, closing_reading')
+            .eq('shift_id', shiftId);
+        if (data && data.length > 0) readings = data;
+    } catch {}
+
+    if (!readings || readings.length === 0) {
+        try {
+            const fallback = await supabase
+                .from('shift_nozzle_readings')
+                .select('nozzle_id, closing_reading')
+                .eq('shift_id', shiftId);
+            readings = fallback.data;
+        } catch {}
+    }
 
     if (readings && readings.length > 0) {
         for (const r of readings) {
@@ -1064,6 +1170,8 @@ export async function approveShift(shiftId, managerId) {
                 .eq('id', r.nozzle_id);
         }
     }
+
+    broadcastMutation('shifts', 'update', { id: shiftId, status: 'approved' });
 }
 
 export async function rejectShift(shiftId, managerId, reason) {
@@ -1077,6 +1185,7 @@ export async function rejectShift(shiftId, managerId, reason) {
         .eq('id', shiftId);
 
     if (error) throw error;
+    broadcastMutation('shifts', 'update', { id: shiftId, status: 'rejected', reason });
 }
 
 // ==========================================
@@ -1190,6 +1299,7 @@ export async function createCustomer({ name, vehicle_number, contact_info, openi
 
     localCustomers.push(finalized);
     localStorage.setItem('petrocorp_customers', JSON.stringify(localCustomers));
+    broadcastMutation('customers', 'insert', finalized);
     return finalized;
 }
 
@@ -1238,6 +1348,7 @@ export async function recordCreditTransaction({
 
     localTxs.push(finalized);
     localStorage.setItem('petrocorp_credit_transactions', JSON.stringify(localTxs));
+    broadcastMutation('credit_transactions', 'insert', finalized);
     return finalized;
 }
 
@@ -1263,6 +1374,7 @@ export async function deleteCreditTransaction(txId) {
     const localTxs = JSON.parse(localStorage.getItem('petrocorp_credit_transactions') || '[]');
     const filtered = localTxs.filter(t => parseInt(t.id) !== parseInt(txId));
     localStorage.setItem('petrocorp_credit_transactions', JSON.stringify(filtered));
+    broadcastMutation('credit_transactions', 'delete', { id: parseInt(txId) });
     return true;
 }
 
@@ -1326,6 +1438,7 @@ export async function saveTankDip({ date, tank_id, dip_reading_mm, water_dip_mm,
     }
 
     if (res.error) throw res.error;
+    broadcastMutation('tank_dip_readings', 'insert', payload);
     return res;
 }
 
@@ -1354,6 +1467,7 @@ export async function saveFuelReceipt({ date, tank_id, quantity_litres, invoice_
     }
 
     if (res.error) throw res.error;
+    broadcastMutation('fuel_receipts', 'insert', payload);
     return res;
 }
 
@@ -1419,17 +1533,18 @@ export async function generateDSSRData(date) {
 
     let nozzleReadings = [];
     if (shiftIds.length > 0) {
+        // Query canonical table shift_readings first
         const { data: readings } = await supabase
-            .from('shift_nozzle_readings')
+            .from('shift_readings')
             .select('*, nozzles(id, name, fuel_type_id)')
             .in('shift_id', shiftIds);
         
         if (readings && readings.length > 0) {
             nozzleReadings = readings;
         } else {
-            // fallback
+            // fallback to legacy shift_nozzle_readings
             const { data: fbReadings } = await supabase
-                .from('shift_readings')
+                .from('shift_nozzle_readings')
                 .select('*, nozzles(id, name, fuel_type_id)')
                 .in('shift_id', shiftIds);
             nozzleReadings = fbReadings || [];
@@ -1626,6 +1741,7 @@ export async function insertTableRow(tableName, rowData) {
 
     // Invalidate related local caches
     invalidateLocalCache(tableName);
+    broadcastMutation(tableName, 'insert', data);
     return data;
 }
 
@@ -1640,6 +1756,7 @@ export async function updateTableRow(tableName, id, updates, idColumn = 'id') {
     if (error) throw error;
 
     invalidateLocalCache(tableName);
+    broadcastMutation(tableName, 'update', data);
     return data;
 }
 
@@ -1652,6 +1769,7 @@ export async function deleteTableRow(tableName, id, idColumn = 'id') {
     if (error) throw error;
 
     invalidateLocalCache(tableName);
+    broadcastMutation(tableName, 'delete', { id });
     return true;
 }
 

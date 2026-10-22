@@ -25,7 +25,12 @@ async function init() {
         }
 
         const session = sessionData.session;
-        const profile = await fetchUserProfile(session.user.id);
+        const [profileResult, settingsResult] = await Promise.allSettled([
+            fetchUserProfile(session.user.id),
+            fetchStationSettings()
+        ]);
+
+        const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
 
         if (!profile || profile.is_active === false) {
             await supabase.auth.signOut();
@@ -35,6 +40,9 @@ async function init() {
 
         AppState.currentUser = session.user;
         AppState.userProfile = profile;
+        if (settingsResult.status === 'fulfilled' && settingsResult.value) {
+            AppState.stationSettings = settingsResult.value;
+        }
 
         // Check if user also has manager access
         const isDual = profile.role === 'manager' || profile.has_dual_access === true;
@@ -53,16 +61,13 @@ async function init() {
         if (nameEl) nameEl.textContent = profile.full_name || 'Station Operator';
 
         // Station info
-        try {
-            AppState.stationSettings = await fetchStationSettings();
-            if (AppState.stationSettings.station_name) {
-                const badge = document.getElementById('station-badge');
-                if (badge) {
-                    const code = AppState.stationSettings.station_code ? ` • ${AppState.stationSettings.station_code}` : '';
-                    badge.textContent = `${AppState.stationSettings.station_name.toUpperCase()}${code}`;
-                }
+        if (AppState.stationSettings?.station_name) {
+            const badge = document.getElementById('station-badge');
+            if (badge) {
+                const code = AppState.stationSettings.station_code ? ` • ${AppState.stationSettings.station_code}` : '';
+                badge.textContent = `${AppState.stationSettings.station_name.toUpperCase()}${code}`;
             }
-        } catch {}
+        }
 
         setupAuthListeners();
 

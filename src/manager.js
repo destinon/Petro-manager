@@ -33,7 +33,9 @@ import {
     fetchTableData,
     insertTableRow,
     updateTableRow,
-    deleteTableRow
+    deleteTableRow,
+    initRealtimeSync,
+    onDataSync
 } from './services/api.js';
 import { formatCurrency, formatLitres, formatDate, getTodayDateString } from './utils/formatters.js';
 import { exportToCSV } from './utils/exportCsv.js';
@@ -49,6 +51,43 @@ export async function initManagerDashboard(state) {
     setupOperatorPumpAssignmentEvents();
     setupDatabaseConsole();
 
+    // Initialize dual-layer realtime sync & register auto-refresher
+    initRealtimeSync();
+    onDataSync((event) => {
+        const today = getTodayDateString();
+        const curDate = document.getElementById('dssr-date-input')?.value || today;
+        const entity = event.entity || event.table;
+
+        if (entity === 'daily_rates') {
+            loadTodayRates(today);
+            loadDSSR(curDate);
+        } else if (entity === 'shifts') {
+            loadPendingApprovals();
+            loadDSSR(curDate);
+        } else if (entity === 'shift_readings' || entity === 'shift_nozzle_readings' || entity === 'shift_payments' || entity === 'shift_expenses') {
+            loadDSSR(curDate);
+            const approvalsView = document.getElementById('mgr-approvals-view');
+            if (approvalsView && !approvalsView.classList.contains('hidden')) {
+                loadPendingApprovals();
+            }
+        } else if (entity === 'nozzles') {
+            loadHardwareList();
+            loadDSSR(curDate);
+        } else if (entity === 'employees') {
+            const empView = document.getElementById('mgr-employees-view');
+            if (empView && !empView.classList.contains('hidden')) {
+                loadEmployeesRoster();
+            }
+        } else if (entity === 'customers' || entity === 'credit_transactions') {
+            const credView = document.getElementById('mgr-credits-view');
+            if (credView && !credView.classList.contains('hidden')) {
+                loadCreditLedger();
+            }
+        } else if (entity === 'tank_dip_readings' || entity === 'fuel_receipts') {
+            loadDSSR(curDate);
+        }
+    });
+
     // Default to today
     const today = getTodayDateString();
     const dssrDateInput = document.getElementById('dssr-date-input');
@@ -61,8 +100,8 @@ export async function initManagerDashboard(state) {
     if (dipDateInput) dipDateInput.value = today;
     if (recDateInput) recDateInput.value = today;
 
-    // Load initial manager data
-    await Promise.all([
+    // Load initial manager data concurrently without cascading failures
+    await Promise.allSettled([
         loadTodayRates(today),
         loadTanksDropdowns(),
         loadDSSR(today),
@@ -72,11 +111,74 @@ export async function initManagerDashboard(state) {
 }
 
 function setupManagerNavigation() {
+    const sidebar = document.getElementById('app-sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const tooltipPill = document.getElementById('sidebar-tooltip-pill');
+
+    // Restore desktop collapsed state
+    if (window.innerWidth > 900 && localStorage.getItem('petrocorp_sidebar_collapsed') === 'true') {
+        sidebar?.classList.add('collapsed');
+    }
+
+    // Toggle button handler
+    toggleBtn?.addEventListener('click', () => {
+        if (!sidebar) return;
+        if (window.innerWidth <= 900) {
+            // Mobile: toggle slide-over expanded drawer
+            sidebar.classList.toggle('expanded');
+            if (backdrop) {
+                if (sidebar.classList.contains('expanded')) {
+                    backdrop.classList.remove('hidden');
+                } else {
+                    backdrop.classList.add('hidden');
+                }
+            }
+        } else {
+            // Desktop: toggle 64px icon rail collapsed state
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('petrocorp_sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        }
+    });
+
+    // Mobile backdrop tap closes expanded drawer
+    backdrop?.addEventListener('click', () => {
+        sidebar?.classList.remove('expanded');
+        backdrop.classList.add('hidden');
+    });
+
+    // Nav button tab switcher & mobile auto-collapse
     const navButtons = document.querySelectorAll('[data-mgr-tab]');
     navButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-mgr-tab');
             switchManagerTab(targetId);
+
+            // Auto-collapse drawer on mobile
+            if (window.innerWidth <= 900) {
+                sidebar?.classList.remove('expanded');
+                backdrop?.classList.add('hidden');
+            }
+        });
+
+        // Floating tooltip pills for collapsed icon-rail mode
+        btn.addEventListener('mouseenter', () => {
+            if (!tooltipPill) return;
+            const isRail = sidebar?.classList.contains('collapsed') || (window.innerWidth <= 900 && !sidebar?.classList.contains('expanded'));
+            if (!isRail) return;
+
+            const text = btn.getAttribute('data-tooltip') || btn.querySelector('.sidebar-label-text')?.textContent?.trim();
+            if (!text) return;
+
+            const rect = btn.getBoundingClientRect();
+            tooltipPill.textContent = text;
+            tooltipPill.style.top = `${rect.top + rect.height / 2}px`;
+            tooltipPill.style.left = `${rect.right + 10}px`;
+            tooltipPill.classList.add('show');
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            tooltipPill?.classList.remove('show');
         });
     });
 

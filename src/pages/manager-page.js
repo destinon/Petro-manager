@@ -25,7 +25,12 @@ async function init() {
         }
 
         const session = sessionData.session;
-        const profile = await fetchUserProfile(session.user.id);
+        const [profileResult, settingsResult] = await Promise.allSettled([
+            fetchUserProfile(session.user.id),
+            fetchStationSettings()
+        ]);
+
+        const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
 
         if (!profile || profile.is_active === false) {
             await supabase.auth.signOut();
@@ -42,6 +47,9 @@ async function init() {
         AppState.currentUser = session.user;
         AppState.userProfile = profile;
         AppState.hasDualAccess = true;
+        if (settingsResult.status === 'fulfilled' && settingsResult.value) {
+            AppState.stationSettings = settingsResult.value;
+        }
 
         // Header User Info
         const nameEl = document.getElementById('user-name');
@@ -51,16 +59,13 @@ async function init() {
         if (opLink) opLink.href = 'operator.html';
 
         // Station info
-        try {
-            AppState.stationSettings = await fetchStationSettings();
-            if (AppState.stationSettings.station_name) {
-                const badge = document.getElementById('station-badge');
-                if (badge) {
-                    const code = AppState.stationSettings.station_code ? ` • ${AppState.stationSettings.station_code}` : '';
-                    badge.textContent = `${AppState.stationSettings.station_name.toUpperCase()}${code}`;
-                }
+        if (AppState.stationSettings?.station_name) {
+            const badge = document.getElementById('station-badge');
+            if (badge) {
+                const code = AppState.stationSettings.station_code ? ` • ${AppState.stationSettings.station_code}` : '';
+                badge.textContent = `${AppState.stationSettings.station_name.toUpperCase()}${code}`;
             }
-        } catch {}
+        }
 
         setupAuthListeners();
 

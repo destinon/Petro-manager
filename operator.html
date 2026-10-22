@@ -17,7 +17,7 @@
                 var saved = localStorage.getItem('petrocorp-theme');
                 var theme = saved === 'dark' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
-                document.documentElement.style.colorScheme = theme;
+                document.documentElement.style.colorScheme = theme === 'dark' ? 'only dark' : 'only light';
             } catch (e) {}
         })();
     </script>
@@ -158,7 +158,7 @@
 
                 <!-- 2. UDHAARI (CREDIT SALES) TAB -->
                 <section id="credit-view" class="op-tab-content hidden">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Form -->
                         <div class="card" style="padding: 24px;">
                             <h3>Log Udhaari (Credit Fuel)</h3>
@@ -184,7 +184,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="cred-quantity">Quantity (Litres)</label>
-                                    <input type="number" step="0.01" id="cred-quantity" required placeholder="0.00">
+                                    <input type="number" step="0.01" inputmode="decimal" id="cred-quantity" required placeholder="0.00">
                                 </div>
                                 <div class="form-group">
                                     <label>Calculated Credit Amount</label>
@@ -220,7 +220,7 @@
 
                 <!-- 3. EXPENSES TAB -->
                 <section id="expenses-view" class="op-tab-content hidden">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Form -->
                         <div class="card" style="padding: 24px;">
                             <h3>Log Shift Cash Expense</h3>
@@ -233,7 +233,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="exp-amount">Amount (₹)</label>
-                                    <input type="number" step="0.01" id="exp-amount" required placeholder="0.00">
+                                    <input type="number" step="0.01" inputmode="decimal" id="exp-amount" required placeholder="0.00">
                                 </div>
                                 <div class="form-group">
                                     <label for="exp-desc">Remarks / Description</label>
@@ -268,7 +268,7 @@
 
                 <!-- 4. RECONCILIATION & END SHIFT TAB -->
                 <section id="recon-view" class="op-tab-content hidden">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Payment Methods Input -->
                         <div class="card" style="padding: 24px;">
                             <h3>Payment Collections</h3>

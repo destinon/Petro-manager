@@ -3,22 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
     <title>PetroCorp - Station Manager Console</title>
     <meta name="description" content="PetroCorp Station Management - Executive DSSR, Approvals & Operations Console">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script>
-        (function() {
+        (function () {
             try {
                 var saved = localStorage.getItem('petrocorp-theme');
                 var theme = saved === 'dark' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
-                document.documentElement.style.colorScheme = theme;
-            } catch (e) {}
+                document.documentElement.style.colorScheme = theme === 'dark' ? 'only dark' : 'only light';
+            } catch (e) { }
         })();
     </script>
 </head>
@@ -31,7 +34,11 @@
     <header class="app-header">
         <div class="header-brand">
             <span class="brand-icon" aria-hidden="true">
-                <svg class="brand-icon-svg" viewBox="0 0 24 24"><path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 10h8"></path></svg>
+                <svg class="brand-icon-svg" viewBox="0 0 24 24">
+                    <path
+                        d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 10h8">
+                    </path>
+                </svg>
             </span>
             <div>
                 <h1 class="brand-title">PetroCorp</h1>
@@ -41,13 +48,22 @@
 
         <div class="header-actions">
             <!-- Link to Operator Terminal -->
-            <a href="operator.html" id="operator-terminal-link" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;" title="Open Operator Shift Terminal">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 10h8"></path></svg> <span class="nav-btn-text">Operator Terminal</span>
+            <a href="operator.html" id="operator-terminal-link" class="btn btn-secondary"
+                style="padding: 6px 12px; font-size: 0.82rem;" title="Open Operator Shift Terminal">
+                <svg class="ui-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 10h8">
+                    </path>
+                </svg> <span class="nav-btn-text">Operator Terminal</span>
             </a>
 
             <!-- Quick Add Employee Button -->
-            <button id="header-add-employee-btn" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem;" title="Register New Station Employee">
-                <svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> <span class="nav-btn-text">Add Employee</span>
+            <button id="header-add-employee-btn" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem;"
+                title="Register New Station Employee">
+                <svg class="ui-icon" viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg> <span class="nav-btn-text">Add Employee</span>
             </button>
 
             <div class="user-badge-wrap">
@@ -55,8 +71,10 @@
                 <span id="user-role-badge" class="user-role-badge role-manager">MANAGER</span>
             </div>
 
-            <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark and light mode" title="Toggle Light / Dark Mode">
-                <svg class="theme-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark and light mode"
+                title="Toggle Light / Dark Mode">
+                <svg class="theme-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
                     <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
@@ -77,40 +95,118 @@
     <!-- Main Layout -->
     <div class="app-layout">
         <!-- Sidebar Navigation -->
-        <aside class="app-sidebar">
-            <div class="sidebar-title">Station Management</div>
-            <button class="sidebar-btn active" data-mgr-tab="mgr-overview-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> DSSR & Inventory
+        <aside class="app-sidebar" id="app-sidebar">
+            <div class="sidebar-header-toggle">
+                <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" type="button" aria-label="Toggle navigation menu" title="Toggle Navigation">
+                    <svg class="ui-icon toggle-icon" viewBox="0 0 24 24">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <span class="sidebar-brand-label">STATION MENU</span>
+            </div>
+
+            <div class="sidebar-section-label">MAIN MENU</div>
+            
+            <button class="sidebar-btn active" data-mgr-tab="mgr-overview-view" data-tooltip="DSSR & Inventory">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">DSSR & Inventory</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-approvals-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Shift Approvals
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-approvals-view" data-tooltip="Shift Approvals">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Shift Approvals</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-rates-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg> Daily Fuel Rates
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-rates-view" data-tooltip="Daily Fuel Rates">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                        <circle cx="12" cy="12" r="2"></circle>
+                        <path d="M6 12h.01M18 12h.01"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Daily Fuel Rates</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-hardware-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9"></path></svg> Pumps & Tanks
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-hardware-view" data-tooltip="Pumps & Tanks">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Pumps & Tanks</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-credits-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Udhaari Ledger
+
+            <div class="sidebar-section-label">ADMINISTRATION</div>
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-credits-view" data-tooltip="Udhaari Ledger">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Udhaari Ledger</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-employees-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Staff & Operators
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-employees-view" data-tooltip="Staff & Operators">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Staff & Operators</span>
             </button>
-            <button class="sidebar-btn" data-mgr-tab="mgr-settings-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Settings
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-settings-view" data-tooltip="Settings">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Settings</span>
             </button>
-            <div style="border-top: 1px solid var(--border-subtle); margin: 8px 0;"></div>
-            <button class="sidebar-btn" data-mgr-tab="mgr-database-view">
-                <svg class="ui-icon" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Database Console
+
+            <button class="sidebar-btn" data-mgr-tab="mgr-database-view" data-tooltip="Database Console">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Database Console</span>
             </button>
         </aside>
+
+        <!-- Slide-over drawer backdrop on mobile -->
+        <div id="sidebar-backdrop" class="sidebar-backdrop hidden" aria-hidden="true"></div>
+        <!-- Floating Tooltip Pill for Collapsed Icon Rail -->
+        <div id="sidebar-tooltip-pill" class="sidebar-tooltip-pill" aria-hidden="true"></div>
 
         <!-- Main Content -->
         <main class="app-main">
             <!-- TAB 1: DSSR & OVERVIEW -->
             <section id="mgr-overview-view" class="mgr-tab-content">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
                     <div>
                         <h2>Daily Stock and Sales Record (DSSR)</h2>
                         <p class="subtitle">Daily inventory reconciliation comparing pump meter totals to tank dips.</p>
@@ -119,7 +215,12 @@
                         <label for="dssr-date-input" style="font-weight: 600; font-size: 0.9rem;">Date:</label>
                         <input type="date" id="dssr-date-input" style="min-width: 130px; flex: 1 1 auto;">
                         <button id="load-dssr-btn" class="btn btn-secondary" style="flex: 0 0 auto;">Refresh</button>
-                        <button id="export-dssr-btn" class="btn btn-primary" style="flex: 0 0 auto;"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV</button>
+                        <button id="export-dssr-btn" class="btn btn-primary" style="flex: 0 0 auto;"><svg
+                                class="ui-icon" viewBox="0 0 24 24">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg> Export CSV</button>
                     </div>
                 </div>
 
@@ -155,12 +256,19 @@
 
             <!-- TAB 2: SHIFT APPROVALS -->
             <section id="mgr-approvals-view" class="mgr-tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <h2>Pending Shift Submissions</h2>
-                        <p class="subtitle">Review operator readings, payment collections, and approve into permanent record.</p>
+                        <p class="subtitle">Review operator readings, payment collections, and approve into permanent
+                            record.</p>
                     </div>
-                    <button id="refresh-approvals-btn" class="btn btn-secondary"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Refresh</button>
+                    <button id="refresh-approvals-btn" class="btn btn-secondary"><svg class="ui-icon"
+                            viewBox="0 0 24 24">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg> Refresh</button>
                 </div>
 
                 <div class="table-responsive">
@@ -178,7 +286,10 @@
                             </tr>
                         </thead>
                         <tbody id="approvals-tbody">
-                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No shifts pending approval.</td></tr>
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: var(--text-muted);">No shifts pending
+                                    approval.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -188,7 +299,8 @@
             <section id="mgr-rates-view" class="mgr-tab-content hidden">
                 <div class="card" style="padding: 28px; max-width: 540px;">
                     <h2>Daily Fuel Rates Configuration</h2>
-                    <p class="subtitle">Set today's retail fuel prices per litre. Operator shifts will lock these rates.</p>
+                    <p class="subtitle">Set today's retail fuel prices per litre. Operator shifts will lock these rates.
+                    </p>
 
                     <form id="mgr-rates-form">
                         <div class="form-group">
@@ -198,12 +310,12 @@
 
                         <div class="form-group">
                             <label for="rate-ms-input">Petrol (MS) Rate (₹ / Litre)</label>
-                            <input type="number" step="0.01" id="rate-ms-input" required placeholder="e.g. 104.50">
+                            <input type="number" step="0.01" inputmode="decimal" id="rate-ms-input" required placeholder="e.g. 104.50">
                         </div>
 
                         <div class="form-group">
                             <label for="rate-hsd-input">Diesel (HSD) Rate (₹ / Litre)</label>
-                            <input type="number" step="0.01" id="rate-hsd-input" required placeholder="e.g. 92.80">
+                            <input type="number" step="0.01" inputmode="decimal" id="rate-hsd-input" required placeholder="e.g. 92.80">
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-block">Publish Daily Rates</button>
@@ -213,7 +325,8 @@
 
             <!-- TAB 4: PUMPS & TANKS (HARDWARE MANAGEMENT) -->
             <section id="mgr-hardware-view" class="mgr-tab-content hidden">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; align-items: start;">
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                     <!-- Tank Dip Entry -->
                     <div class="card" style="padding: 24px;">
                         <h3>Record Physical Tank Dip</h3>
@@ -230,15 +343,16 @@
                             </div>
                             <div class="form-group">
                                 <label for="dip-reading">Fuel Dip (mm / Litres)</label>
-                                <input type="number" step="0.01" id="dip-reading" required placeholder="Enter fuel dip">
+                                <input type="number" step="0.01" inputmode="decimal" id="dip-reading" required placeholder="Enter fuel dip">
                             </div>
                             <div class="form-group">
                                 <label for="dip-water">Water Dip (mm)</label>
-                                <input type="number" step="0.01" id="dip-water" value="0">
+                                <input type="number" step="0.01" inputmode="decimal" id="dip-water" value="0">
                             </div>
                             <div class="form-group">
                                 <label for="dip-net-stock">Calculated / Net Stock (Litres)</label>
-                                <input type="number" step="0.01" id="dip-net-stock" required placeholder="Net litres in tank">
+                                <input type="number" step="0.01" inputmode="decimal" id="dip-net-stock" required
+                                    placeholder="Net litres in tank">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Save Tank Dip</button>
                         </form>
@@ -260,7 +374,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="rec-quantity">Delivered Quantity (Litres)</label>
-                                <input type="number" step="0.01" id="rec-quantity" required placeholder="e.g. 12000">
+                                <input type="number" step="0.01" inputmode="decimal" id="rec-quantity" required placeholder="e.g. 12000">
                             </div>
                             <div class="form-group">
                                 <label for="rec-invoice">Invoice / Tanker Challan No.</label>
@@ -273,13 +387,18 @@
 
                 <!-- Nozzles Hardware List -->
                 <div class="card" style="padding: 24px; margin-top: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                         <div>
                             <h3>Active Dispenser Pumps & Nozzles</h3>
-                            <p class="subtitle">Dynamically configure dispensers, edit meter calibrations, add new units, or remove pumps.</p>
+                            <p class="subtitle">Dynamically configure dispensers, edit meter calibrations, add new
+                                units, or remove pumps.</p>
                         </div>
                         <button id="add-pump-modal-btn" class="btn btn-primary">
-                            <svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add New Pump / Nozzle
+                            <svg class="ui-icon" viewBox="0 0 24 24">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg> Add New Pump / Nozzle
                         </button>
                     </div>
                     <div class="table-responsive">
@@ -303,14 +422,24 @@
 
             <!-- TAB 5: UDHAARI LEDGER -->
             <section id="mgr-credits-view" class="mgr-tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <h2>Udhaari (Credit) Ledger</h2>
                         <p class="subtitle">Track customer balances, credit limits, and record repayments.</p>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button id="add-customer-modal-btn" class="btn btn-primary"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> New Customer</button>
-                        <button id="export-credit-btn" class="btn btn-secondary"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export Ledger</button>
+                        <button id="add-customer-modal-btn" class="btn btn-primary"><svg class="ui-icon"
+                                viewBox="0 0 24 24">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg> New Customer</button>
+                        <button id="export-credit-btn" class="btn btn-secondary"><svg class="ui-icon"
+                                viewBox="0 0 24 24">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg> Export Ledger</button>
                     </div>
                 </div>
 
@@ -328,7 +457,10 @@
                             </tr>
                         </thead>
                         <tbody id="mgr-credits-tbody">
-                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading credit ledger...</td></tr>
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading credit
+                                    ledger...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -336,13 +468,17 @@
 
             <!-- TAB 6: STAFF & OPERATORS -->
             <section id="mgr-employees-view" class="mgr-tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <h2>Station Personnel Roster</h2>
                         <p class="subtitle">Manage authorized station operators and manager access.</p>
                     </div>
                     <button class="btn btn-primary" id="add-employee-modal-btn">
-                        <svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Employee
+                        <svg class="ui-icon" viewBox="0 0 24 24">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg> Add Employee
                     </button>
                 </div>
 
@@ -359,42 +495,59 @@
                             </tr>
                         </thead>
                         <tbody id="mgr-employees-tbody">
-                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading staff roster...</td></tr>
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading staff
+                                    roster...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <!-- Operator Dispenser Pump Assignment Card -->
                 <div class="card" style="padding: 24px; margin-top: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                         <div>
                             <h3>Operator Dispenser Pump Assignments</h3>
-                            <p class="subtitle">Assign authorized dispenser pumps/nozzles to each operator. Operators will strictly only see and access their assigned pumps.</p>
+                            <p class="subtitle">Assign authorized dispenser pumps/nozzles to each operator. Operators
+                                will strictly only see and access their assigned pumps.</p>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start;">
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; align-items: start;">
                         <div class="form-group">
                             <label for="assign-operator-select">Select Station Operator</label>
                             <select id="assign-operator-select">
                                 <option value="">Choose an operator...</option>
                             </select>
-                            <small style="color: var(--text-muted); font-size: 0.8rem;">Changes apply directly to this operator's shift console.</small>
+                            <small style="color: var(--text-muted); font-size: 0.8rem;">Changes apply directly to this
+                                operator's shift console.</small>
                         </div>
 
                         <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <label style="font-weight: 600; font-size: 0.88rem;">Authorized Dispenser Units</label>
                                 <div style="display: flex; gap: 8px;">
-                                    <button type="button" class="btn btn-secondary btn-sm" id="assign-select-all-btn">Select All</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" id="assign-clear-all-btn">Clear All</button>
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                        id="assign-select-all-btn">Select All</button>
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                        id="assign-clear-all-btn">Clear All</button>
                                 </div>
                             </div>
-                            <div id="assign-nozzles-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--bg-surface-muted); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                                <span style="color: var(--text-muted); font-size: 0.85rem;">Select an operator on the left to configure pump permissions...</span>
+                            <div id="assign-nozzles-checkboxes"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--bg-surface-muted); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">Select an operator on the
+                                    left to configure pump permissions...</span>
                             </div>
-                            <button id="save-operator-pumps-btn" class="btn btn-primary btn-block" style="margin-top: 14px;" disabled>
-                                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Pump Assignment for Operator
+                            <button id="save-operator-pumps-btn" class="btn btn-primary btn-block"
+                                style="margin-top: 14px;" disabled>
+                                <svg class="ui-icon" viewBox="0 0 24 24">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg> Save Pump Assignment for Operator
                             </button>
                         </div>
                     </div>
@@ -418,11 +571,11 @@
                         </div>
                         <div class="form-group">
                             <label for="set-stock-warning">Stock Variation Warning Threshold (Litres)</label>
-                            <input type="number" id="set-stock-warning" placeholder="50">
+                            <input type="number" inputmode="decimal" id="set-stock-warning" placeholder="50">
                         </div>
                         <div class="form-group">
                             <label for="set-cash-warning">Cash Shortage Warning Threshold (₹)</label>
-                            <input type="number" id="set-cash-warning" placeholder="100">
+                            <input type="number" inputmode="decimal" id="set-cash-warning" placeholder="100">
                         </div>
 
                         <button type="submit" class="btn btn-primary">Save Station Settings</button>
@@ -432,10 +585,12 @@
 
             <!-- TAB 8: DATABASE CONSOLE -->
             <section id="mgr-database-view" class="mgr-tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <h2>Database Console</h2>
-                        <p class="subtitle">Direct Supabase table access — Browse, insert, edit, and delete records across all tables.</p>
+                        <p class="subtitle">Direct Supabase table access — Browse, insert, edit, and delete records
+                            across all tables.</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <div class="form-group" style="margin-bottom: 0;">
@@ -443,22 +598,38 @@
                                 <option value="">Select a table…</option>
                             </select>
                         </div>
-                        <input type="text" id="db-search-input" placeholder="Search records…" style="width: 170px; padding: 7px 12px; font-size: 0.85rem;" disabled>
-                        <button id="db-refresh-btn" class="btn btn-secondary" disabled><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Refresh</button>
-                        <button id="db-insert-btn" class="btn btn-primary" disabled><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Insert Row</button>
+                        <input type="text" id="db-search-input" placeholder="Search records…"
+                            style="width: 170px; padding: 7px 12px; font-size: 0.85rem;" disabled>
+                        <button id="db-refresh-btn" class="btn btn-secondary" disabled><svg class="ui-icon"
+                                viewBox="0 0 24 24">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg> Refresh</button>
+                        <button id="db-insert-btn" class="btn btn-primary" disabled><svg class="ui-icon"
+                                viewBox="0 0 24 24">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg> Insert Row</button>
                     </div>
                 </div>
 
                 <!-- Database Table Info Bar -->
                 <div id="db-info-bar" class="card" style="padding: 12px 18px; margin-bottom: 16px; display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <span id="db-table-icon" style="display: inline-flex; color: var(--accent-primary);">
-                                <svg class="ui-icon" style="width: 1.4rem; height: 1.4rem;" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                                <svg class="ui-icon" style="width: 1.4rem; height: 1.4rem;" viewBox="0 0 24 24">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                </svg>
                             </span>
                             <div>
                                 <strong id="db-table-name" style="font-size: 1.05rem;"></strong>
-                                <span id="db-row-count" class="mono" style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;"></span>
+                                <span id="db-row-count" class="mono"
+                                    style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;"></span>
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
@@ -473,10 +644,15 @@
                 <div id="db-results-container" class="table-responsive" style="max-height: 70vh; overflow: auto;">
                     <div style="text-align: center; padding: 60px; color: var(--text-muted);">
                         <div style="display: inline-flex; margin-bottom: 12px; color: var(--text-muted);">
-                            <svg class="ui-icon" style="width: 2.5rem; height: 2.5rem;" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                            <svg class="ui-icon" style="width: 2.5rem; height: 2.5rem;" viewBox="0 0 24 24">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            </svg>
                         </div>
                         <p style="font-size: 1rem; font-weight: 600;">Select a table from the dropdown above</p>
-                        <p style="font-size: 0.85rem;">You have full read/write/delete access to all PetroCorp Supabase tables.</p>
+                        <p style="font-size: 0.85rem;">You have full read/write/delete access to all PetroCorp Supabase
+                            tables.</p>
                     </div>
                 </div>
             </section>

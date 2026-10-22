@@ -23,7 +23,9 @@ import {
     fetchShiftCredits,
     deleteCreditTransaction,
     submitShift,
-    saveShiftAsDraft
+    saveShiftAsDraft,
+    initRealtimeSync,
+    onDataSync
 } from './services/api.js';
 import {
     calculateGrossQuantity,
@@ -57,6 +59,38 @@ export async function initOperatorDashboard(state) {
     appState = state;
     setupOperatorTabNavigation();
     setupOperatorForms();
+
+    // Initialize live realtime sync
+    initRealtimeSync();
+    onDataSync(async (event) => {
+        const entity = event.entity || event.table;
+        if (entity === 'daily_rates') {
+            // Live update today's rates in shift initialization form if shift isn't started yet
+            if (!shiftState.shiftId) {
+                const today = getTodayDateString();
+                const rates = await fetchDailyRates(today);
+                const ms = rates.find(r => r.fuel_type_id === 1)?.rate || 0;
+                const hsd = rates.find(r => r.fuel_type_id === 2)?.rate || 0;
+                const msEl = document.getElementById('rate-ms');
+                const hsdEl = document.getElementById('rate-hsd');
+                if (msEl) msEl.textContent = formatCurrency(ms);
+                if (hsdEl) hsdEl.textContent = formatCurrency(hsd);
+            }
+        } else if (entity === 'nozzles' || entity === 'operator_nozzle_assignments') {
+            if (!shiftState.shiftId && appState?.currentUser?.id) {
+                const assignedNozzles = await fetchNozzlesForOperator(appState.currentUser.id);
+                shiftState.nozzles = assignedNozzles;
+            }
+        } else if (entity === 'customers') {
+            const customers = await fetchCustomers();
+            shiftState.customers = customers || [];
+            populateCustomerDropdown();
+        } else if (entity === 'shifts' && shiftState.shiftId && event.data?.id === shiftState.shiftId) {
+            if (event.action === 'update' && (event.data?.status === 'approved' || event.data?.status === 'rejected')) {
+                toast(`Your shift was ${event.data.status} by the manager`, event.data.status === 'approved' ? 'success' : 'warning');
+            }
+        }
+    });
 
     await loadStationReferenceData();
     await checkOrRestoreActiveShift();
@@ -99,15 +133,15 @@ function switchOperatorTab(tabId) {
 
 async function loadStationReferenceData() {
     try {
-        const [customers, methods, categories] = await Promise.all([
+        const results = await Promise.allSettled([
             fetchCustomers(),
             fetchPaymentMethods(),
             fetchExpenseCategories()
         ]);
 
-        shiftState.customers = customers || [];
-        shiftState.paymentMethods = methods || [];
-        shiftState.expenseCategories = categories || [];
+        shiftState.customers = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
+        shiftState.paymentMethods = results[1].status === 'fulfilled' ? (results[1].value || []) : [];
+        shiftState.expenseCategories = results[2].status === 'fulfilled' ? (results[2].value || []) : [];
 
         populateCustomerDropdown();
         populateExpenseCategoriesDropdown();

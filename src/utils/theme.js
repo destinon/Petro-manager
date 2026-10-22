@@ -20,7 +20,7 @@ export function getPreferredTheme() {
 export function applyTheme(theme) {
     const validTheme = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', validTheme);
-    document.documentElement.style.colorScheme = validTheme;
+    document.documentElement.style.colorScheme = validTheme === 'dark' ? 'only dark' : 'only light';
 
     // Synchronize all theme toggle buttons on the page
     const toggleBtns = document.querySelectorAll('#theme-toggle, .theme-toggle-btn');

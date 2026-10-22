@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   server: {
@@ -11,11 +14,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(import.meta.dirname, 'index.html'),
-        operator: resolve(import.meta.dirname, 'operator.html'),
-        manager: resolve(import.meta.dirname, 'manager.html')
+        main: resolve(__dirname, 'index.html'),
+        operator: resolve(__dirname, 'operator.html'),
+        manager: resolve(__dirname, 'manager.html')
       }
-
     }
   },
   plugins: [

@@ -3,13 +3,14 @@
 -- COMPLETE SUPABASE SETUP SCRIPT (100% IDEMPOTENT & ROBUST)
 -- ============================================================
 -- INSTRUCTIONS:
--- 1. Open your Supabase Project: https://supabase.com/dashboard
+-- 1. Open your Supabase Project Dashboard: https://supabase.com/dashboard
 -- 2. Go to the "SQL Editor" in the left sidebar
 -- 3. Click "New query"
 -- 4. Copy and paste this ENTIRE file into the editor
 -- 5. Click "Run" (or Ctrl + Enter)
--- 6. All tables, views, RLS policies, seed data, and RPC functions
---    will be generated, and PostgREST schema cache will be reloaded!
+-- 6. All tables, views, RLS policies, seed data, performance indexes,
+--    Realtime publication tables, and RPC functions will be created,
+--    and PostgREST schema cache will be reloaded immediately!
 -- ============================================================
 
 -- 1. EXTENSIONS
@@ -80,36 +81,37 @@ ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN
 ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT 'User';
+ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- 4b. Employees Table
--- Safely drop old view if employees relation was created as a view in earlier migrations
+-- 4b. Employees Table (Standardized with profiles)
 DO $$ BEGIN
     IF EXISTS (SELECT 1 FROM pg_views WHERE schemaname = 'public' AND viewname = 'employees') THEN
         DROP VIEW public.employees CASCADE;
     END IF;
 END $$;
 
--- Create real employees table
 CREATE TABLE IF NOT EXISTS public.employees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name TEXT NOT NULL DEFAULT 'User',
+    name TEXT,
     role TEXT NOT NULL DEFAULT 'operator',
     email TEXT,
     phone TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Ensure employee columns exist if table already existed
-DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'employees') THEN
-        ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT 'User';
-        ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'operator';
-        ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS email TEXT;
-        ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS phone TEXT;
-        ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
-    END IF;
-END $$;
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT 'User';
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'operator';
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE IF EXISTS public.employees ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- Sync name with full_name for backward compatibility
+UPDATE public.employees SET name = full_name WHERE name IS NULL;
 
 -- Fuel Types
 CREATE TABLE IF NOT EXISTS public.fuel_types (
@@ -137,8 +139,8 @@ CREATE TABLE IF NOT EXISTS public.pumps (
 CREATE TABLE IF NOT EXISTS public.nozzles (
     id SERIAL PRIMARY KEY,
     name TEXT,
-    pump_id INTEGER REFERENCES public.pumps(id) ON DELETE SET NULL,
-    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON DELETE SET NULL,
+    pump_id INTEGER REFERENCES public.pumps(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL,
     fuel_type TEXT,
     master_reading DECIMAL(14, 2) NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0,
@@ -147,8 +149,8 @@ CREATE TABLE IF NOT EXISTS public.nozzles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS pump_id INTEGER REFERENCES public.pumps(id) ON DELETE SET NULL;
-ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS pump_id INTEGER REFERENCES public.pumps(id) ON UPDATE CASCADE ON DELETE SET NULL;
+ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS fuel_type TEXT;
 ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS master_reading DECIMAL(14, 2) NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
@@ -158,7 +160,7 @@ ALTER TABLE IF EXISTS public.nozzles ADD COLUMN IF NOT EXISTS is_active BOOLEAN 
 CREATE TABLE IF NOT EXISTS public.tanks (
     id SERIAL PRIMARY KEY,
     name TEXT,
-    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON DELETE SET NULL,
+    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL,
     fuel_type TEXT,
     capacity DECIMAL(12, 2) DEFAULT 20000,
     capacity_litres DECIMAL(12, 2) NOT NULL DEFAULT 20000,
@@ -169,7 +171,7 @@ CREATE TABLE IF NOT EXISTS public.tanks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS name TEXT;
-ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS fuel_type TEXT;
 ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS capacity DECIMAL(12, 2) DEFAULT 20000;
 ALTER TABLE IF EXISTS public.tanks ADD COLUMN IF NOT EXISTS capacity_litres DECIMAL(12, 2) NOT NULL DEFAULT 20000;
@@ -226,8 +228,8 @@ CREATE TABLE IF NOT EXISTS public.station_settings (
 -- Operator Nozzle Allocations
 CREATE TABLE IF NOT EXISTS public.operator_nozzle_assignments (
     id SERIAL PRIMARY KEY,
-    operator_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    nozzle_id INTEGER NOT NULL REFERENCES public.nozzles(id) ON DELETE CASCADE,
+    operator_id UUID NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    nozzle_id INTEGER NOT NULL REFERENCES public.nozzles(id) ON UPDATE CASCADE ON DELETE CASCADE,
     assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(operator_id, nozzle_id)
 );
@@ -236,28 +238,33 @@ CREATE TABLE IF NOT EXISTS public.operator_nozzle_assignments (
 CREATE TABLE IF NOT EXISTS public.daily_rates (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
-    fuel_type_id INTEGER REFERENCES public.fuel_types(id),
+    effective_date DATE,
+    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL,
     rate DECIMAL(10, 2),
     ms_rate DECIMAL(10, 2),
     hsd_rate DECIMAL(10, 2),
-    set_by UUID REFERENCES auth.users(id),
+    set_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id);
+ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS effective_date DATE;
+ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS rate DECIMAL(10, 2);
 ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS ms_rate DECIMAL(10, 2);
 ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS hsd_rate DECIMAL(10, 2);
-ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS set_by UUID REFERENCES auth.users(id);
+ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS set_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.daily_rates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- Keep effective_date aligned with date
+UPDATE public.daily_rates SET effective_date = date WHERE effective_date IS NULL;
 
 -- Shifts
 CREATE TABLE IF NOT EXISTS public.shifts (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
-    shift_type_id INTEGER REFERENCES public.shift_types(id),
+    shift_type_id INTEGER REFERENCES public.shift_types(id) ON UPDATE CASCADE ON DELETE SET NULL,
     shift_type TEXT,
-    operator_id UUID NOT NULL REFERENCES auth.users(id),
+    operator_id UUID NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
     status shift_status NOT NULL DEFAULT 'open',
     total_sales_amount DECIMAL(14, 2) NOT NULL DEFAULT 0,
     total_deductions DECIMAL(14, 2) NOT NULL DEFAULT 0,
@@ -265,14 +272,14 @@ CREATE TABLE IF NOT EXISTS public.shifts (
     ms_rate DECIMAL(10, 2),
     hsd_rate DECIMAL(10, 2),
     is_closed BOOLEAN NOT NULL DEFAULT false,
-    approved_by UUID REFERENCES auth.users(id),
+    approved_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL,
     approved_at TIMESTAMPTZ,
     rejection_reason TEXT,
     notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS shift_type_id INTEGER REFERENCES public.shift_types(id);
+ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS shift_type_id INTEGER REFERENCES public.shift_types(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS shift_type TEXT;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS total_sales_amount DECIMAL(14, 2) NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS total_deductions DECIMAL(14, 2) NOT NULL DEFAULT 0;
@@ -280,41 +287,49 @@ ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS short_extra_cash DE
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS ms_rate DECIMAL(10, 2);
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS hsd_rate DECIMAL(10, 2);
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS is_closed BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES auth.users(id);
+ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS notes TEXT;
 ALTER TABLE IF EXISTS public.shifts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- Shift Rate Snapshots
+-- Shift Rate Snapshots (Canonical Table)
 CREATE TABLE IF NOT EXISTS public.shift_rate_snapshots (
     id SERIAL PRIMARY KEY,
-    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
-    fuel_type_id INTEGER NOT NULL REFERENCES public.fuel_types(id),
+    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    fuel_type_id INTEGER NOT NULL REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE CASCADE,
     rate DECIMAL(10, 2) NOT NULL,
     UNIQUE(shift_id, fuel_type_id)
 );
 
--- Shift Nozzle Readings
-CREATE TABLE IF NOT EXISTS public.shift_nozzle_readings (
+-- Shift Readings (CANONICAL TABLE: standardized for all readings)
+CREATE TABLE IF NOT EXISTS public.shift_readings (
     id SERIAL PRIMARY KEY,
-    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
-    nozzle_id INTEGER NOT NULL REFERENCES public.nozzles(id) ON DELETE CASCADE,
-    opening_reading DECIMAL(14, 2) NOT NULL,
-    closing_reading DECIMAL(14, 2) NOT NULL,
+    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    nozzle_id INTEGER NOT NULL REFERENCES public.nozzles(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    opening_reading DECIMAL(14, 2) NOT NULL DEFAULT 0,
+    closing_reading DECIMAL(14, 2) NOT NULL DEFAULT 0,
     testing_qty DECIMAL(10, 2) NOT NULL DEFAULT 0,
     net_sale_qty DECIMAL(12, 2) GENERATED ALWAYS AS (closing_reading - opening_reading - testing_qty) STORED,
     rate DECIMAL(10, 2),
     sales_amount DECIMAL(14, 2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(shift_id, nozzle_id)
 );
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS nozzle_id INTEGER REFERENCES public.nozzles(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS opening_reading DECIMAL(14, 2) NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS closing_reading DECIMAL(14, 2) NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS testing_qty DECIMAL(10, 2) NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS rate DECIMAL(10, 2);
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS sales_amount DECIMAL(14, 2);
+ALTER TABLE IF EXISTS public.shift_readings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- Shift Payment Breakdown
 CREATE TABLE IF NOT EXISTS public.shift_payments (
     id SERIAL PRIMARY KEY,
-    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
-    payment_method_id INTEGER NOT NULL REFERENCES public.payment_methods(id),
+    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    payment_method_id INTEGER NOT NULL REFERENCES public.payment_methods(id) ON UPDATE CASCADE ON DELETE CASCADE,
     amount DECIMAL(14, 2) NOT NULL DEFAULT 0,
     notes TEXT,
     UNIQUE(shift_id, payment_method_id)
@@ -323,8 +338,8 @@ CREATE TABLE IF NOT EXISTS public.shift_payments (
 -- Shift Operational Expenses
 CREATE TABLE IF NOT EXISTS public.shift_expenses (
     id SERIAL PRIMARY KEY,
-    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
-    category_id INTEGER REFERENCES public.expense_categories(id),
+    shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    category_id INTEGER REFERENCES public.expense_categories(id) ON UPDATE CASCADE ON DELETE SET NULL,
     amount DECIMAL(10, 2) NOT NULL,
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -333,47 +348,51 @@ CREATE TABLE IF NOT EXISTS public.shift_expenses (
 -- Credit Transactions (Sales & Repayments)
 CREATE TABLE IF NOT EXISTS public.credit_transactions (
     id SERIAL PRIMARY KEY,
-    customer_id INTEGER NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
-    shift_id INTEGER REFERENCES public.shifts(id) ON DELETE SET NULL,
+    customer_id INTEGER NOT NULL REFERENCES public.customers(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    shift_id INTEGER REFERENCES public.shifts(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
     type credit_tx_type NOT NULL,
-    fuel_type_id INTEGER REFERENCES public.fuel_types(id),
+    fuel_type_id INTEGER REFERENCES public.fuel_types(id) ON UPDATE CASCADE ON DELETE SET NULL,
     quantity DECIMAL(10, 2),
     rate DECIMAL(10, 2),
     amount DECIMAL(12, 2) NOT NULL,
     vehicle_number TEXT,
-    payment_method_id INTEGER REFERENCES public.payment_methods(id),
-    recorded_by UUID REFERENCES auth.users(id),
+    payment_method_id INTEGER REFERENCES public.payment_methods(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    recorded_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL,
     notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE IF EXISTS public.credit_transactions ADD COLUMN IF NOT EXISTS date DATE NOT NULL DEFAULT CURRENT_DATE;
 
--- Physical Tank Dipstick Readings
+-- Physical Tank Dipstick Readings (CANONICAL TABLE)
 CREATE TABLE IF NOT EXISTS public.tank_dip_readings (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
-    tank_id INTEGER NOT NULL REFERENCES public.tanks(id) ON DELETE CASCADE,
+    tank_id INTEGER NOT NULL REFERENCES public.tanks(id) ON UPDATE CASCADE ON DELETE CASCADE,
     dip_reading_mm DECIMAL(10, 2),
     water_dip_mm DECIMAL(10, 2) DEFAULT 0,
     calculated_litres DECIMAL(12, 2) NOT NULL,
     source stock_entry_source NOT NULL DEFAULT 'manual',
-    recorded_by UUID REFERENCES auth.users(id),
+    recorded_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(date, tank_id)
 );
 
--- Fuel Delivery Receipts
+-- Fuel Delivery Receipts (CANONICAL TABLE)
 CREATE TABLE IF NOT EXISTS public.fuel_receipts (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
-    tank_id INTEGER NOT NULL REFERENCES public.tanks(id) ON DELETE CASCADE,
+    tank_id INTEGER NOT NULL REFERENCES public.tanks(id) ON UPDATE CASCADE ON DELETE CASCADE,
     quantity_litres DECIMAL(12, 2) NOT NULL,
     invoice_number TEXT,
-    recorded_by UUID REFERENCES auth.users(id),
+    recorded_by UUID REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 6. VIEWS & COMPATIBILITY SYNONYMS
+-- Ensure both canonical and synonym names resolve seamlessly in all client queries
 
+-- Customer balances aggregated view
 CREATE OR REPLACE VIEW public.customer_balances AS
 SELECT
     c.id,
@@ -392,29 +411,60 @@ FROM public.customers c
 LEFT JOIN public.credit_transactions ct ON ct.customer_id = c.id
 GROUP BY c.id;
 
--- Safely convert old empty tables to views for backwards-compatibility
+-- Drop obsolete standalone tables if they were empty so views can take their place,
+-- or create backward-compatible updatable views
 DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shift_readings') THEN
-        DROP TABLE public.shift_readings CASCADE;
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shift_nozzle_readings') THEN
+        -- Migrate any rows into canonical shift_readings if needed
+        INSERT INTO public.shift_readings (shift_id, nozzle_id, opening_reading, closing_reading, testing_qty, rate, sales_amount, created_at)
+        SELECT shift_id, nozzle_id, opening_reading, closing_reading, testing_qty, rate, sales_amount, created_at
+        FROM public.shift_nozzle_readings
+        ON CONFLICT (shift_id, nozzle_id) DO UPDATE SET
+            opening_reading = EXCLUDED.opening_reading,
+            closing_reading = EXCLUDED.closing_reading,
+            testing_qty = EXCLUDED.testing_qty,
+            rate = EXCLUDED.rate,
+            sales_amount = EXCLUDED.sales_amount;
+        DROP TABLE public.shift_nozzle_readings CASCADE;
     END IF;
+
     IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shift_rates') THEN
         DROP TABLE public.shift_rates CASCADE;
     END IF;
+
     IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tank_readings') THEN
+        INSERT INTO public.tank_dip_readings (date, tank_id, dip_reading_mm, water_dip_mm, calculated_litres, created_at)
+        SELECT COALESCE(date, CURRENT_DATE), tank_id, dip_reading_mm, water_dip_mm, calculated_litres, created_at
+        FROM public.tank_readings
+        ON CONFLICT (date, tank_id) DO NOTHING;
         DROP TABLE public.tank_readings CASCADE;
     END IF;
+
     IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'fuel_deliveries') THEN
+        INSERT INTO public.fuel_receipts (date, tank_id, quantity_litres, invoice_number, created_at)
+        SELECT COALESCE(date, CURRENT_DATE), tank_id, quantity_litres, invoice_number, created_at
+        FROM public.fuel_deliveries;
         DROP TABLE public.fuel_deliveries CASCADE;
     END IF;
 END $$;
 
-CREATE OR REPLACE VIEW public.shift_readings AS SELECT * FROM public.shift_nozzle_readings;
+-- Synonyms for zero downtime across legacy callers
+CREATE OR REPLACE VIEW public.shift_nozzle_readings AS SELECT * FROM public.shift_readings;
 CREATE OR REPLACE VIEW public.shift_rates AS SELECT * FROM public.shift_rate_snapshots;
 CREATE OR REPLACE VIEW public.tank_readings AS SELECT * FROM public.tank_dip_readings;
 CREATE OR REPLACE VIEW public.fuel_deliveries AS SELECT * FROM public.fuel_receipts;
 
--- 7. INITIAL MASTER & SEED DATA
+-- 7. HIGH-SPEED PERFORMANCE INDEXES
+CREATE INDEX IF NOT EXISTS idx_shifts_date_status ON public.shifts (date DESC, status);
+CREATE INDEX IF NOT EXISTS idx_shift_readings_shift_nozzle ON public.shift_readings (shift_id, nozzle_id);
+CREATE INDEX IF NOT EXISTS idx_nozzles_pump_fuel_active ON public.nozzles (pump_id, fuel_type, is_active);
+CREATE INDEX IF NOT EXISTS idx_tank_dip_readings_date_tank ON public.tank_dip_readings (date DESC, tank_id);
+CREATE INDEX IF NOT EXISTS idx_fuel_receipts_date_tank ON public.fuel_receipts (date DESC, tank_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_cust_date ON public.credit_transactions (customer_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_rates_effective_date ON public.daily_rates (effective_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_rates_date ON public.daily_rates (date DESC);
 
+-- 8. INITIAL MASTER & SEED DATA
 INSERT INTO public.fuel_types (id, name, display_name, sort_order) VALUES
 (1, 'MS', 'Petrol (MS)', 1),
 (2, 'HSD', 'Diesel (HSD)', 2)
@@ -479,17 +529,18 @@ INSERT INTO public.station_settings (key, value) VALUES
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Populate employees from existing profiles
-INSERT INTO public.employees (id, full_name, role, email, phone, is_active, created_at)
-SELECT id, full_name, role::text, email, phone, is_active, created_at
+INSERT INTO public.employees (id, full_name, name, role, email, phone, is_active, created_at)
+SELECT id, full_name, full_name, role::text, email, phone, is_active, created_at
 FROM public.profiles
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
+    name = EXCLUDED.name,
     role = EXCLUDED.role,
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
     is_active = EXCLUDED.is_active;
 
--- 8. AUTO USER PROFILE SYNC TRIGGER
+-- 9. AUTO USER PROFILE SYNC TRIGGER
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -501,6 +552,22 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name;
+
+  -- Also keep employees table in sync
+  INSERT INTO public.employees (id, full_name, name, role, email, is_active)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'operator'),
+    NEW.email,
+    true
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    name = EXCLUDED.name,
+    email = EXCLUDED.email;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -510,7 +577,41 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 9. PERMISSIONS & RLS POLICIES
+-- 10. REPLICA IDENTITY FULL (REQUIRED FOR REALTIME SYNC)
+ALTER TABLE public.pumps REPLICA IDENTITY FULL;
+ALTER TABLE public.nozzles REPLICA IDENTITY FULL;
+ALTER TABLE public.shifts REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_readings REPLICA IDENTITY FULL;
+ALTER TABLE public.daily_rates REPLICA IDENTITY FULL;
+ALTER TABLE public.fuel_types REPLICA IDENTITY FULL;
+ALTER TABLE public.employees REPLICA IDENTITY FULL;
+ALTER TABLE public.operator_nozzle_assignments REPLICA IDENTITY FULL;
+ALTER TABLE public.customers REPLICA IDENTITY FULL;
+ALTER TABLE public.credit_transactions REPLICA IDENTITY FULL;
+ALTER TABLE public.tank_dip_readings REPLICA IDENTITY FULL;
+ALTER TABLE public.fuel_receipts REPLICA IDENTITY FULL;
+
+-- 11. SUPABASE REALTIME PUBLICATION
+DO $$
+DECLARE
+    tbl text;
+    tables text[] := ARRAY[
+        'pumps', 'nozzles', 'shifts', 'shift_readings', 'daily_rates', 
+        'fuel_types', 'employees', 'operator_nozzle_assignments', 
+        'customers', 'credit_transactions', 'tank_dip_readings', 'fuel_receipts'
+    ];
+BEGIN
+    FOREACH tbl IN ARRAY tables LOOP
+        BEGIN
+            EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I;', tbl);
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+            WHEN undefined_object THEN null;
+        END;
+    END LOOP;
+END $$;
+
+-- 12. PERMISSIONS & RLS POLICIES
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
@@ -530,23 +631,19 @@ ALTER TABLE public.operator_nozzle_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_rate_snapshots ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.shift_nozzle_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shift_readings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tank_dip_readings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fuel_receipts ENABLE ROW LEVEL SECURITY;
-
-DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'employees') THEN
-        ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Public access employees" ON public.employees;
-        CREATE POLICY "Public access employees" ON public.employees FOR ALL USING (true) WITH CHECK (true);
-    END IF;
-END $$;
+ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public access profiles" ON public.profiles;
 CREATE POLICY "Public access profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access employees" ON public.employees;
+CREATE POLICY "Public access employees" ON public.employees FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public access fuel_types" ON public.fuel_types;
 CREATE POLICY "Public access fuel_types" ON public.fuel_types FOR ALL USING (true) WITH CHECK (true);
@@ -587,8 +684,8 @@ CREATE POLICY "Public access shifts" ON public.shifts FOR ALL USING (true) WITH 
 DROP POLICY IF EXISTS "Public access shift_rate_snapshots" ON public.shift_rate_snapshots;
 CREATE POLICY "Public access shift_rate_snapshots" ON public.shift_rate_snapshots FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public access shift_nozzle_readings" ON public.shift_nozzle_readings;
-CREATE POLICY "Public access shift_nozzle_readings" ON public.shift_nozzle_readings FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public access shift_readings" ON public.shift_readings;
+CREATE POLICY "Public access shift_readings" ON public.shift_readings FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public access shift_payments" ON public.shift_payments;
 CREATE POLICY "Public access shift_payments" ON public.shift_payments FOR ALL USING (true) WITH CHECK (true);
@@ -605,5 +702,5 @@ CREATE POLICY "Public access tank_dip_readings" ON public.tank_dip_readings FOR 
 DROP POLICY IF EXISTS "Public access fuel_receipts" ON public.fuel_receipts;
 CREATE POLICY "Public access fuel_receipts" ON public.fuel_receipts FOR ALL USING (true) WITH CHECK (true);
 
--- 10. REFRESH POSTGREST SCHEMA CACHE
+-- 13. REFRESH POSTGREST SCHEMA CACHE IMMEDIATELY
 NOTIFY pgrst, 'reload schema';
