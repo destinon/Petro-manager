@@ -302,8 +302,8 @@ async function handleStartShift() {
 
     try {
         const rates = [
-            { fuel_type_id: 1, rate: shiftState.rates.MS || 104.50 },
-            { fuel_type_id: 2, rate: shiftState.rates.HSD || 92.80 }
+            { fuel_type_id: 1, rate: shiftState.rates.MS },
+            { fuel_type_id: 2, rate: shiftState.rates.HSD }
         ];
 
         const shift = await createShift({

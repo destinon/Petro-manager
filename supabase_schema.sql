@@ -433,32 +433,8 @@ INSERT INTO public.expense_categories (id, name) VALUES
 (6, 'Miscellaneous')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
-INSERT INTO public.pumps (id, name, description) VALUES
-(1, 'Pump 1', 'Main Forecourt Dispenser 1'),
-(2, 'Pump 2', 'Main Forecourt Dispenser 2'),
-(3, 'Pump 3', 'Heavy Vehicle Dispenser 3'),
-(4, 'Pump 4', 'Heavy Vehicle Dispenser 4')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
-
-INSERT INTO public.tanks (id, name, fuel_type_id, capacity_litres, current_stock_litres) VALUES
-(1, 'Tank 1 (Petrol MS)', 1, 20000, 14500),
-(2, 'Tank 2 (Diesel HSD)', 2, 25000, 18200)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
-
-INSERT INTO public.nozzles (id, name, pump_id, fuel_type_id, master_reading, sort_order) VALUES
-(1, 'MS 1', 1, 1, 54120.50, 1),
-(2, 'HSD 2', 1, 2, 78910.20, 2),
-(3, 'MS 3', 2, 1, 31200.00, 3),
-(4, 'HSD 4', 2, 2, 92450.80, 4),
-(5, 'MS 5', 3, 1, 14320.10, 5),
-(6, 'HSD 6', 3, 2, 65110.40, 6),
-(7, 'MS 7', 4, 1, 42100.00, 7),
-(8, 'HSD 8', 4, 2, 53900.50, 8)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
-
+-- Operational configuration thresholds (Station profile left clean for customer setup)
 INSERT INTO public.station_settings (key, value) VALUES
-('station_name', 'MAYUR AUTOMOBILE'),
-('station_code', '48198TA198'),
 ('stock_variation_warning_litres', '50'),
 ('cash_shortage_warning_rupees', '100')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

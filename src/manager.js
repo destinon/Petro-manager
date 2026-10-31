@@ -724,23 +724,31 @@ async function loadTanksDropdowns() {
         const recSelect = document.getElementById('rec-tank');
 
         if (dipSelect) {
-            dipSelect.innerHTML = '<option value="">Select storage tank...</option>';
-            tanks.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.textContent = `${t.name} (${t.fuel_types?.name || 'Fuel'}) - ${t.capacity_litres} L`;
-                dipSelect.appendChild(opt);
-            });
+            if (!tanks || tanks.length === 0) {
+                dipSelect.innerHTML = '<option value="">No storage tanks configured</option>';
+            } else {
+                dipSelect.innerHTML = '<option value="">Select storage tank...</option>';
+                tanks.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = `${t.name} (${t.fuel_types?.name || 'Fuel'}) - ${t.capacity_litres} L`;
+                    dipSelect.appendChild(opt);
+                });
+            }
         }
 
         if (recSelect) {
-            recSelect.innerHTML = '<option value="">Select storage tank...</option>';
-            tanks.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.textContent = `${t.name} (${t.fuel_types?.name || 'Fuel'})`;
-                recSelect.appendChild(opt);
-            });
+            if (!tanks || tanks.length === 0) {
+                recSelect.innerHTML = '<option value="">No storage tanks configured</option>';
+            } else {
+                recSelect.innerHTML = '<option value="">Select storage tank...</option>';
+                tanks.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = `${t.name} (${t.fuel_types?.name || 'Fuel'})`;
+                    recSelect.appendChild(opt);
+                });
+            }
         }
     } catch (err) {
         console.warn('Error loading tanks dropdowns:', err);
@@ -1049,7 +1057,7 @@ function openAddCustomerModal() {
             <form id="new-customer-form">
                 <div class="form-group">
                     <label for="new-cust-name">Customer / Account Name</label>
-                    <input type="text" id="new-cust-name" required placeholder="e.g. KONARK HOME">
+                    <input type="text" id="new-cust-name" required placeholder="e.g. Fleet / Customer Name">
                 </div>
                 <div class="form-group">
                     <label for="new-cust-veh">Primary Vehicle Number</label>
@@ -1258,6 +1266,11 @@ async function loadEmployeesRoster() {
             fetchNozzles()
         ]);
         tbody.innerHTML = '';
+
+        if (!emps || emps.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">No personnel registered yet. Click "+ Add Employee" to register staff.</td></tr>';
+            return;
+        }
 
         const activeNozzles = nozzles.filter(n => n.is_active !== false);
 

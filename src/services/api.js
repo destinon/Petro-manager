@@ -7,6 +7,22 @@ import { supabase, createClient, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supa
 // REALTIME LIVE SYNC DUAL ENGINE (BROADCAST + POSTGRES_CHANGES)
 // ==========================================
 
+// Purge any legacy demo localStorage keys from previous demo versions
+try {
+    const custCache = localStorage.getItem('petrocorp_customers');
+    if (custCache && (custCache.includes('MBC') || custCache.includes('KONARK HOME') || custCache.includes('BITTU SETH'))) {
+        localStorage.removeItem('petrocorp_customers');
+    }
+    const staffCache = localStorage.getItem('petrocorp_cached_staff');
+    if (staffCache && (staffCache.includes('Sunil Shinde') || staffCache.includes('Station Manager'))) {
+        localStorage.removeItem('petrocorp_cached_staff');
+    }
+    const nozzleCache = localStorage.getItem('petrocorp_custom_nozzles');
+    if (nozzleCache && nozzleCache.includes('54120.5')) {
+        localStorage.removeItem('petrocorp_custom_nozzles');
+    }
+} catch {}
+
 export const liveSyncChannel = supabase.channel('petrocorp-live-sync', {
     config: {
         broadcast: { self: false }
@@ -225,12 +241,14 @@ export async function fetchEmployees() {
             return list;
         }
 
-        // Default baseline personnel
-        const defaults = [
-            { id: '1', full_name: 'Station Manager', role: 'manager', is_active: true, phone: '+91 98220 00000', email: 'manager@petrocorp.com' },
-            { id: '2', full_name: 'Sunil Shinde', role: 'operator', is_active: true, phone: '+91 98220 11111', email: 'operator@petrocorp.com' }
-        ];
-        return defaults;
+        const cached = localStorage.getItem('petrocorp_cached_staff');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            } catch {}
+        }
+        return [];
     } catch (err) {
         console.warn('Error fetching employees:', err);
         return [];
@@ -405,28 +423,10 @@ export async function fetchPumps() {
             .from('pumps')
             .select('*')
             .order('id', { ascending: true });
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
     } catch {}
-    return [
-        { id: 1, name: 'Pump 1', is_active: true },
-        { id: 2, name: 'Pump 2', is_active: true },
-        { id: 3, name: 'Pump 3', is_active: true },
-        { id: 4, name: 'Pump 4', is_active: true }
-    ];
+    return [];
 }
-
-const DEFAULT_NOZZLES = [
-    { id: 1, name: 'MS 1', fuel_type_id: 1, master_reading: 54120.50, is_active: true, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-    { id: 2, name: 'HSD 2', fuel_type_id: 2, master_reading: 78910.20, is_active: true, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } },
-    { id: 3, name: 'MS 3', fuel_type_id: 1, master_reading: 31200.00, is_active: true, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-    { id: 4, name: 'HSD 4', fuel_type_id: 2, master_reading: 92450.80, is_active: true, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } },
-    { id: 5, name: 'MS 5', fuel_type_id: 1, master_reading: 14320.10, is_active: true, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-    { id: 6, name: 'HSD 6', fuel_type_id: 2, master_reading: 65110.40, is_active: true, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } },
-    { id: 7, name: 'MS 7', fuel_type_id: 1, master_reading: 42100.00, is_active: true, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-    { id: 8, name: 'HSD 8', fuel_type_id: 2, master_reading: 53900.50, is_active: true, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } },
-    { id: 9, name: 'MS 9', fuel_type_id: 1, master_reading: 28440.30, is_active: true, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-    { id: 10, name: 'HSD 10', fuel_type_id: 2, master_reading: 81220.00, is_active: true, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } }
-];
 
 export async function fetchNozzles() {
     // 1. Try fetching from remote Supabase DB first (source of truth)
@@ -436,7 +436,11 @@ export async function fetchNozzles() {
             .select('*, fuel_types(id, name, display_name)')
             .order('id', { ascending: true });
 
-        if (!error && data && data.length > 0) {
+        if (!error && Array.isArray(data)) {
+            if (data.length === 0) {
+                localStorage.removeItem('petrocorp_custom_nozzles');
+                return [];
+            }
             const mapped = data.map(n => ({
                 ...n,
                 fuel_types: n.fuel_types || {
@@ -457,13 +461,17 @@ export async function fetchNozzles() {
     if (localStr) {
         try {
             const parsed = JSON.parse(localStr);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) {
+                if (parsed.some(n => n.master_reading === 54120.50)) {
+                    localStorage.removeItem('petrocorp_custom_nozzles');
+                    return [];
+                }
+                return parsed;
+            }
         } catch {}
     }
 
-    // 3. Fallback: initialize station baseline nozzles
-    localStorage.setItem('petrocorp_custom_nozzles', JSON.stringify(DEFAULT_NOZZLES));
-    return DEFAULT_NOZZLES;
+    return [];
 }
 
 export async function createNozzle({ name, fuel_type_id, master_reading }) {
@@ -634,16 +642,11 @@ export async function fetchTanks() {
             .from('tanks')
             .select('*, fuel_types(id, name, display_name)')
             .order('name');
-        if (!error && data && data.length > 0) return data;
+        if (!error && data) return data;
     } catch (err) {
         console.warn('Error fetching tanks:', err);
     }
-    return [
-        { id: 1, name: 'MS Tank 1', fuel_type_id: 1, capacity_litres: 20000, current_dip_mm: 1250, current_stock_litres: 14500, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-        { id: 2, name: 'MS Tank 2', fuel_type_id: 1, capacity_litres: 20000, current_dip_mm: 1100, current_stock_litres: 12800, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' }, is_active: true },
-        { id: 3, name: 'HSD Tank 1', fuel_type_id: 2, capacity_litres: 25000, current_dip_mm: 1540, current_stock_litres: 18200, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true },
-        { id: 4, name: 'HSD Tank 2', fuel_type_id: 2, capacity_litres: 25000, current_dip_mm: 1420, current_stock_litres: 16900, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' }, is_active: true }
-    ];
+    return [];
 }
 
 export async function fetchShiftTypes() {
@@ -744,12 +747,19 @@ export async function fetchDailyRates(date) {
             const first = data[0];
             // Check if table uses ms_rate and hsd_rate columns
             if (first.ms_rate !== undefined || first.hsd_rate !== undefined) {
-                const mapped = [
-                    { date, fuel_type_id: 1, rate: parseFloat(first.ms_rate || 104.50), fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-                    { date, fuel_type_id: 2, rate: parseFloat(first.hsd_rate || 92.80), fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } }
-                ];
-                localStorage.setItem('petrocorp_daily_rates_' + date, JSON.stringify(mapped));
-                return mapped;
+                const mapped = [];
+                const ms = parseFloat(first.ms_rate);
+                const hsd = parseFloat(first.hsd_rate);
+                if (!isNaN(ms) && ms > 0) {
+                    mapped.push({ date, fuel_type_id: 1, rate: ms, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } });
+                }
+                if (!isNaN(hsd) && hsd > 0) {
+                    mapped.push({ date, fuel_type_id: 2, rate: hsd, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } });
+                }
+                if (mapped.length > 0) {
+                    localStorage.setItem('petrocorp_daily_rates_' + date, JSON.stringify(mapped));
+                    return mapped;
+                }
             }
             // Standard normalized schema
             const mapped = data.map(r => ({
@@ -769,7 +779,8 @@ export async function fetchDailyRates(date) {
     const cached = localStorage.getItem('petrocorp_daily_rates_' + date);
     if (cached) {
         try {
-            return JSON.parse(cached);
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch {}
     }
 
@@ -777,20 +788,21 @@ export async function fetchDailyRates(date) {
     try {
         const settings = await fetchStationSettings();
         if (settings && (settings.ms_rate || settings.hsd_rate)) {
-            const ms = parseFloat(settings.ms_rate || 104.50);
-            const hsd = parseFloat(settings.hsd_rate || 92.80);
-            return [
-                { date, fuel_type_id: 1, rate: ms, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-                { date, fuel_type_id: 2, rate: hsd, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } }
-            ];
+            const ms = parseFloat(settings.ms_rate);
+            const hsd = parseFloat(settings.hsd_rate);
+            const rates = [];
+            if (!isNaN(ms) && ms > 0) {
+                rates.push({ date, fuel_type_id: 1, rate: ms, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } });
+            }
+            if (!isNaN(hsd) && hsd > 0) {
+                rates.push({ date, fuel_type_id: 2, rate: hsd, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } });
+            }
+            if (rates.length > 0) return rates;
         }
     } catch {}
 
-    // Baseline station rate defaults
-    return [
-        { date, fuel_type_id: 1, rate: 104.50, fuel_types: { id: 1, name: 'MS', display_name: 'Petrol (MS)' } },
-        { date, fuel_type_id: 2, rate: 92.80, fuel_types: { id: 2, name: 'HSD', display_name: 'Diesel (HSD)' } }
-    ];
+    // No rates entered yet by manager
+    return [];
 }
 
 export async function saveDailyRates(date, ratesArray, userId) {
@@ -1243,13 +1255,17 @@ export async function fetchCustomers() {
             return viewData;
         }
 
-        // 2. Fallback to raw customers table and compute balances dynamically
+        // 2. Fetch raw customers table and compute balances dynamically
         const { data: rawCustomers, error: custErr } = await supabase
             .from('customers')
             .select('*')
             .order('name');
 
-        if (!custErr && rawCustomers && rawCustomers.length > 0) {
+        if (!custErr && Array.isArray(rawCustomers)) {
+            if (rawCustomers.length === 0) {
+                localStorage.removeItem('petrocorp_customers');
+                return [];
+            }
             const { data: dbTxs } = await supabase.from('credit_transactions').select('*');
             const allTxs = (dbTxs && dbTxs.length > 0) ? dbTxs : localTxs;
 
@@ -1272,8 +1288,13 @@ export async function fetchCustomers() {
         console.warn('Notice loading customers from DB:', err);
     }
 
-    // 3. Fallback to local cache with computed balances
+    // 3. Fallback to local cache only if DB query failed (e.g. offline)
     if (localCustomers.length > 0) {
+        // Double check not demo customers
+        if (localCustomers.some(c => c.name === 'MBC' || c.name === 'KONARK HOME')) {
+            localStorage.removeItem('petrocorp_customers');
+            return [];
+        }
         return localCustomers.map(c => {
             const cTxs = localTxs.filter(t => parseInt(t.customer_id) === parseInt(c.id));
             const sales = cTxs.filter(t => t.type === 'sale').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
@@ -1288,19 +1309,8 @@ export async function fetchCustomers() {
         });
     }
 
-    // 4. Default baseline customers from SHIFT ledger
-    const DEFAULT_CUSTOMERS = [
-        { id: 1, name: 'MBC', vehicle_number: 'MH 14 DA 1100', contact_info: '+91 98220 12345', opening_balance: 14500, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 14500, is_active: true },
-        { id: 2, name: 'KONARK HOME', vehicle_number: 'MH 12 CR 4455', contact_info: '+91 98220 23456', opening_balance: 8200, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 8200, is_active: true },
-        { id: 3, name: 'MARUTI', vehicle_number: 'MH 14 EQ 8877', contact_info: '+91 98220 34567', opening_balance: 23400, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 23400, is_active: true },
-        { id: 4, name: 'BRC', vehicle_number: 'MH 14 FG 9090', contact_info: '+91 98220 45678', opening_balance: 5600, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 5600, is_active: true },
-        { id: 5, name: 'BITTU SETH', vehicle_number: 'MH 12 AX 3322', contact_info: '+91 98220 56789', opening_balance: 19800, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 19800, is_active: true },
-        { id: 6, name: 'AMIT SAND', vehicle_number: 'MH 14 HG 1234', contact_info: '+91 98220 67890', opening_balance: 11200, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 11200, is_active: true },
-        { id: 7, name: 'JAY AMBE', vehicle_number: 'MH 12 KJ 5566', contact_info: '+91 98220 78901', opening_balance: 7500, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 7500, is_active: true },
-        { id: 8, name: 'J P LINES', vehicle_number: 'MH 14 TR 7878', contact_info: '+91 98220 89012', opening_balance: 31000, total_credit_sales: 0, total_repayments: 0, outstanding_balance: 31000, is_active: true }
-    ];
-    localStorage.setItem('petrocorp_customers', JSON.stringify(DEFAULT_CUSTOMERS));
-    return DEFAULT_CUSTOMERS;
+    // 4. No customers found
+    return [];
 }
 
 export async function createCustomer({ name, vehicle_number, contact_info, opening_balance }) {

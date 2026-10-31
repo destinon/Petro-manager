@@ -24,15 +24,206 @@
             } catch (e) { }
         })();
     </script>
+
+    <!-- Mobile Drawer & Responsive Layout Patch -->
+    <style>
+        /* Hamburger Menu Button (Hidden on Desktop) */
+        .mobile-menu-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: var(--radius-sm, 8px);
+            background: var(--bg-surface-muted, rgba(128, 128, 128, 0.12));
+            border: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+            color: var(--text-primary, currentColor);
+            cursor: pointer;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .mobile-drawer-header {
+            display: none;
+        }
+
+        /* Backdrop Overlay */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.24s ease;
+        }
+
+        .sidebar-backdrop.is-open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Mobile Viewports (<= 860px) */
+        @media (max-width: 860px) {
+            .mobile-menu-btn {
+                display: inline-flex;
+            }
+
+            /* Compact Header so it doesn't wrap/overflow */
+            .app-header {
+                padding: 10px 14px !important;
+                gap: 8px;
+            }
+
+            .header-brand {
+                gap: 8px !important;
+            }
+
+            .station-badge,
+            .nav-btn-text,
+            .user-badge-wrap {
+                display: none !important;
+            }
+
+            /* Fix Off-Canvas Drawer so it NEVER jams */
+            .app-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                width: min(285px, 82vw) !important;
+                height: 100dvh !important;
+                z-index: 999 !important;
+                background: var(--bg-surface, #12161f) !important;
+                border-right: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1)) !important;
+                box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
+                padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                overflow-y: auto !important;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+
+                /* Hardware-accelerated slide */
+                transform: translate3d(-105%, 0, 0) !important;
+                transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1) !important;
+                will-change: transform;
+                pointer-events: auto !important;
+            }
+
+            .app-sidebar.is-open {
+                transform: translate3d(0, 0, 0) !important;
+            }
+
+            .mobile-drawer-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 14px;
+                margin-bottom: 8px;
+                border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+            }
+
+            .mobile-drawer-close {
+                background: transparent;
+                border: none;
+                color: var(--text-secondary, currentColor);
+                font-size: 1.6rem;
+                line-height: 1;
+                padding: 4px 8px;
+                cursor: pointer;
+            }
+
+            .sidebar-btn {
+                width: 100% !important;
+                justify-content: flex-start !important;
+                padding: 13px 14px !important;
+                font-size: 0.95rem !important;
+                border-radius: var(--radius-sm, 8px) !important;
+                touch-action: manipulation;
+            }
+
+            /* Ensure main content uses full width and clears sticky footer */
+            .app-main {
+                width: 100% !important;
+                margin-left: 0 !important;
+                padding: 14px 12px 150px 12px !important;
+            }
+
+            /* Mobile-friendly Sticky Bottom Summary Bar */
+            .shift-summary-bar {
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                z-index: 900 !important;
+            }
+
+            .shift-summary-bar .summary-metrics {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 6px !important;
+                width: 100% !important;
+            }
+
+            .shift-summary-bar .summary-metric {
+                text-align: center;
+            }
+
+            .shift-summary-bar .summary-metric-label {
+                font-size: 0.68rem !important;
+                display: block;
+            }
+
+            .shift-summary-bar .summary-metric-val {
+                font-size: 0.85rem !important;
+            }
+
+            .shift-summary-bar .summary-actions {
+                display: flex !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+
+            .shift-summary-bar .summary-actions .btn {
+                flex: 1 !important;
+                justify-content: center !important;
+                padding: 9px 10px !important;
+                font-size: 0.85rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <!-- Animated Grid Background -->
     <div class="grid-background" aria-hidden="true"></div>
 
+    <!-- Mobile Drawer Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
     <!-- Application Top Bar -->
     <header class="app-header">
         <div class="header-brand">
+            <!-- Mobile Drawer Toggle Button -->
+            <button id="mobile-menu-toggle" class="mobile-menu-btn" type="button" aria-label="Open operator menu"
+                aria-expanded="false" aria-controls="operator-sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+
             <span class="brand-icon" aria-hidden="true">
                 <svg class="brand-icon-svg" viewBox="0 0 24 24">
                     <path
@@ -86,7 +277,17 @@
     <!-- Main Content Area -->
     <div class="app-layout">
         <!-- Sidebar Navigation (Pumps, Credit, Expenses, End Shift) -->
-        <aside class="app-sidebar">
+        <aside id="operator-sidebar" class="app-sidebar">
+            <!-- Mobile-only Drawer Top Bar -->
+            <div class="mobile-drawer-header">
+                <div>
+                    <strong style="font-size: 0.95rem; display: block;">Operator Console</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Select task view</span>
+                </div>
+                <button id="mobile-drawer-close" class="mobile-drawer-close" type="button"
+                    aria-label="Close drawer">&times;</button>
+            </div>
+
             <div class="sidebar-title">Operator Tasks</div>
             <button class="sidebar-btn active" data-op-tab="pumps-view">
                 <svg class="ui-icon" viewBox="0 0 24 24">
@@ -437,7 +638,7 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 10px;">
+                    <div class="summary-actions" style="display: flex; gap: 10px;">
                         <button id="bar-quick-save-btn" class="btn btn-secondary"><svg class="ui-icon"
                                 viewBox="0 0 24 24">
                                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -463,6 +664,56 @@
             <div id="modal-footer" class="modal-footer"></div>
         </div>
     </div>
+
+    <!-- Non-blocking Mobile Drawer Controller -->
+    <script>
+        (function () {
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            const closeBtn = document.getElementById('mobile-drawer-close');
+            const sidebar = document.getElementById('operator-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+
+            if (!toggleBtn || !sidebar || !backdrop) return;
+
+            function setDrawerState(open) {
+                sidebar.classList.toggle('is-open', open);
+                backdrop.classList.toggle('is-open', open);
+                toggleBtn.setAttribute('aria-expanded', String(open));
+                document.body.style.overflow = open ? 'hidden' : '';
+            }
+
+            toggleBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isOpen = sidebar.classList.contains('is-open');
+                setDrawerState(!isOpen);
+            });
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    setDrawerState(false);
+                });
+            }
+
+            backdrop.addEventListener('click', function () {
+                setDrawerState(false);
+            });
+
+            // Auto-close drawer immediately when any tab button is tapped
+            sidebar.addEventListener('click', function (e) {
+                const tabBtn = e.target.closest('.sidebar-btn');
+                if (tabBtn) {
+                    setDrawerState(false);
+                }
+            });
+
+            // Reset cleanly if rotated or resized to desktop
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 860 && sidebar.classList.contains('is-open')) {
+                    setDrawerState(false);
+                }
+            });
+        })();
+    </script>
 
     <script type="module" src="/src/pages/operator-page.js"></script>
 </body>
