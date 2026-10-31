@@ -86,12 +86,12 @@
             }
 
             /* Sidebar is out of flow: content gets the whole screen */
-            .app-layout {
+            html body .app-layout {
                 display: block !important;
                 grid-template-columns: 1fr !important;
             }
 
-            .app-main {
+            html body .app-main {
                 width: 100% !important;
                 max-width: 100% !important;
                 margin-left: 0 !important;
@@ -146,7 +146,7 @@
             }
 
             /* Drawer: off-screen unless opened with the hamburger */
-            .app-sidebar {
+            html body .app-sidebar {
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
@@ -178,7 +178,7 @@
                 pointer-events: auto !important;
             }
 
-            .app-sidebar.is-open {
+            html body .app-sidebar.is-open {
                 transform: translate3d(0, 0, 0) !important;
                 visibility: visible;
                 box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
@@ -188,9 +188,9 @@
             }
 
             /* Always show full labels in the drawer (undo the icon-rail look) */
-            .app-sidebar .sidebar-label-text,
-            .app-sidebar .sidebar-section-label,
-            .app-sidebar .sidebar-brand-label {
+            html body .app-sidebar .sidebar-label-text,
+            html body .app-sidebar .sidebar-section-label,
+            html body .app-sidebar .sidebar-brand-label {
                 display: inline-block !important;
                 opacity: 1 !important;
                 width: auto !important;
@@ -199,11 +199,11 @@
                 transform: none !important;
             }
 
-            .app-sidebar .sidebar-section-label {
+            html body .app-sidebar .sidebar-section-label {
                 display: block !important;
             }
 
-            .app-sidebar .sidebar-header-toggle {
+            html body .app-sidebar .sidebar-header-toggle {
                 display: none !important;
             }
 
@@ -227,7 +227,7 @@
                 cursor: pointer;
             }
 
-            .sidebar-btn {
+            html body .app-sidebar .sidebar-btn {
                 width: 100% !important;
                 justify-content: flex-start !important;
                 gap: 12px;
@@ -1063,19 +1063,95 @@
     <!-- Mobile drawer controller: opens ONLY from the hamburger -->
     <script>
         (function () {
+            const sidebar = document.getElementById('app-sidebar');
             const toggleBtn = document.getElementById('mobile-menu-toggle');
             const closeBtn = document.getElementById('mobile-drawer-close');
-            const sidebar = document.getElementById('app-sidebar');
             const backdrop = document.getElementById('drawer-backdrop');
-            const mq = window.matchMedia('(max-width: 860px)');
+            const layout = document.querySelector('.app-layout');
+            const main = document.querySelector('.app-main');
+            if (!sidebar || !toggleBtn || !backdrop) return;
 
-            if (!toggleBtn || !sidebar || !backdrop) return;
+            const mq = window.matchMedia('(max-width: 860px)');
+            const applied = new Map();
+
+            // Inline !important styles beat any stylesheet rule, so style.css / theme.css
+            // can no longer keep the sidebar in the page flow on phones.
+            function force(el, props) {
+                if (!el) return;
+                let keys = applied.get(el);
+                if (!keys) { keys = new Set(); applied.set(el, keys); }
+                for (const k in props) {
+                    el.style.setProperty(k, props[k], 'important');
+                    keys.add(k);
+                }
+            }
+
+            function release() {
+                applied.forEach(function (keys, el) {
+                    keys.forEach(function (k) { el.style.removeProperty(k); });
+                });
+                applied.clear();
+            }
+
+            function applyStatic() {
+                force(layout, { display: 'block', 'grid-template-columns': '1fr', 'padding-left': '0', 'margin-left': '0' });
+                force(main, { 'margin-left': '0', width: '100%', 'max-width': '100%', 'min-width': '0', left: '0', transform: 'none' });
+
+                force(sidebar, {
+                    position: 'fixed', top: '0', left: '0', bottom: '0', right: 'auto',
+                    width: 'min(285px, 82vw)', 'min-width': '0', 'max-width': 'none', height: 'auto',
+                    margin: '0', 'z-index': '999',
+                    display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch', gap: '8px',
+                    'overflow-y': 'auto', 'overflow-x': 'hidden', 'overscroll-behavior': 'contain',
+                    'pointer-events': 'auto', 'will-change': 'transform',
+                    background: 'var(--bg-surface, #12161f)',
+                    'border-right': '1px solid var(--border-subtle, rgba(128,128,128,0.25))',
+                    padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))'
+                });
+
+                sidebar.querySelectorAll('.sidebar-btn').forEach(function (b) {
+                    force(b, {
+                        display: 'flex', 'align-items': 'center', 'justify-content': 'flex-start', gap: '12px',
+                        width: '100%', 'min-height': '48px', padding: '13px 14px',
+                        'font-size': '0.95rem', 'text-indent': '0', overflow: 'visible'
+                    });
+                });
+                sidebar.querySelectorAll('.sidebar-label-text, .sidebar-brand-label').forEach(function (l) {
+                    force(l, {
+                        display: 'inline-block', opacity: '1', width: 'auto', 'max-width': 'none',
+                        visibility: 'visible', transform: 'none', 'font-size': '0.95rem'
+                    });
+                });
+                sidebar.querySelectorAll('.sidebar-section-label, .sidebar-title').forEach(function (l) {
+                    force(l, { display: 'block', opacity: '1', height: 'auto', visibility: 'visible' });
+                });
+                force(sidebar.querySelector('.mobile-drawer-header'), { display: 'flex' });
+
+                ['.sidebar-header-toggle', '#sidebar-toggle-btn', '#sidebar-tooltip-pill', '#sidebar-backdrop'].forEach(function (sel) {
+                    force(document.querySelector(sel), { display: 'none' });
+                });
+            }
+
+            function applyState(open) {
+                force(sidebar, open ? {
+                    transform: 'translate3d(0, 0, 0)',
+                    visibility: 'visible',
+                    'box-shadow': '12px 0 32px rgba(0, 0, 0, 0.45)',
+                    transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s'
+                } : {
+                    transform: 'translate3d(-105%, 0, 0)',
+                    visibility: 'hidden',
+                    'box-shadow': 'none',
+                    transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s linear 0.26s'
+                });
+            }
 
             function setDrawerState(open) {
                 sidebar.classList.toggle('is-open', open);
                 backdrop.classList.toggle('is-open', open);
                 toggleBtn.setAttribute('aria-expanded', String(open));
                 document.body.style.overflow = open ? 'hidden' : '';
+                if (mq.matches) applyState(open);
                 if (open) {
                     var first = sidebar.querySelector('.sidebar-btn');
                     if (first) first.focus({ preventScroll: true });
@@ -1084,11 +1160,23 @@
                 }
             }
 
+            function sync() {
+                if (mq.matches) {
+                    applyStatic();
+                    applyState(sidebar.classList.contains('is-open'));
+                } else {
+                    release();
+                    sidebar.classList.remove('is-open');
+                    backdrop.classList.remove('is-open');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            }
+
             toggleBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 setDrawerState(!sidebar.classList.contains('is-open'));
             });
-
             if (closeBtn) closeBtn.addEventListener('click', function () { setDrawerState(false); });
             backdrop.addEventListener('click', function () { setDrawerState(false); });
 
@@ -1104,11 +1192,11 @@
                 }
             });
 
-            function onBreakpointChange() {
-                if (!mq.matches && sidebar.classList.contains('is-open')) setDrawerState(false);
-            }
-            if (mq.addEventListener) mq.addEventListener('change', onBreakpointChange);
-            else if (mq.addListener) mq.addListener(onBreakpointChange);
+            if (mq.addEventListener) mq.addEventListener('change', sync);
+            else if (mq.addListener) mq.addListener(sync);
+
+            sync();
+
         })();
     </script>
 

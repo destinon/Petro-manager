@@ -40,9 +40,9 @@
             min-width: 0;
         }
 
-        /* Hamburger Menu Button (Hidden on Desktop) */
+        /* Hamburger Menu Button (Accessible on all screens) */
         .mobile-menu-btn {
-            display: none;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 40px;
@@ -56,6 +56,13 @@
             flex-shrink: 0;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            transition: all 0.18s ease;
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--accent-light, rgba(59, 130, 246, 0.12));
+            color: var(--accent-primary, #3b82f6);
+            border-color: var(--accent-border, rgba(59, 130, 246, 0.3));
         }
 
         .mobile-drawer-header {
@@ -63,7 +70,7 @@
         }
 
         /* Backdrop Overlay */
-        .sidebar-backdrop {
+        .drawer-backdrop {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.55);
@@ -76,7 +83,7 @@
             transition: opacity 0.24s ease, visibility 0s linear 0.24s;
         }
 
-        .sidebar-backdrop.is-open {
+        .drawer-backdrop.is-open {
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
@@ -97,7 +104,7 @@
             }
 
             /* Layout: sidebar is out of flow, so main must be single full-width column */
-            .app-layout {
+            html body .app-layout {
                 display: block !important;
                 grid-template-columns: 1fr !important;
             }
@@ -146,7 +153,7 @@
             }
 
             /* Off-canvas drawer */
-            .app-sidebar {
+            html body .app-sidebar {
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
@@ -176,7 +183,7 @@
                 pointer-events: auto !important;
             }
 
-            .app-sidebar.is-open {
+            html body .app-sidebar.is-open {
                 transform: translate3d(0, 0, 0) !important;
                 visibility: visible;
                 box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
@@ -205,7 +212,7 @@
                 cursor: pointer;
             }
 
-            .sidebar-btn {
+            html body .app-sidebar .sidebar-btn {
                 width: 100% !important;
                 justify-content: flex-start !important;
                 min-height: 48px;
@@ -216,7 +223,7 @@
             }
 
             /* Main content: full width, clears the sticky bottom bar */
-            .app-main {
+            html body .app-main {
                 width: 100% !important;
                 max-width: 100% !important;
                 margin-left: 0 !important;
@@ -435,7 +442,7 @@
 
         /* ---------- Small phones (<= 400px) ---------- */
         @media (max-width: 400px) {
-            .app-main {
+            html body .app-main {
                 padding-bottom: 200px !important;
             }
 
@@ -463,7 +470,7 @@
         @media (prefers-reduced-motion: reduce) {
 
             .app-sidebar,
-            .sidebar-backdrop {
+            .drawer-backdrop {
                 transition: none !important;
             }
         }
@@ -475,7 +482,7 @@
     <div class="grid-background" aria-hidden="true"></div>
 
     <!-- Mobile Drawer Backdrop -->
-    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+    <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
 
     <!-- Application Top Bar -->
     <header class="app-header">
@@ -556,35 +563,67 @@
                     aria-label="Close drawer">&times;</button>
             </div>
 
-            <div class="sidebar-title">Operator Tasks</div>
-            <button class="sidebar-btn active" data-op-tab="pumps-view">
-                <svg class="ui-icon" viewBox="0 0 24 24">
-                    <path
-                        d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9">
-                    </path>
-                </svg> Nozzle Meters
+            <!-- Desktop Sidebar Header Toggle (Hamburger Button) -->
+            <div class="sidebar-header-toggle">
+                <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" type="button"
+                    aria-label="Toggle navigation menu" title="Toggle Navigation">
+                    <svg class="ui-icon toggle-icon" viewBox="0 0 24 24">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <span class="sidebar-brand-label">OPERATOR TASKS</span>
+            </div>
+
+            <div class="sidebar-section-label">OPERATOR TASKS</div>
+
+            <button class="sidebar-btn active" data-op-tab="pumps-view" data-tooltip="Nozzle Meters">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path
+                            d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9">
+                        </path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Nozzle Meters</span>
             </button>
-            <button class="sidebar-btn" data-op-tab="credit-view">
-                <svg class="ui-icon" viewBox="0 0 24 24">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg> Log Udhaari (Credit)
+
+            <button class="sidebar-btn" data-op-tab="credit-view" data-tooltip="Log Udhaari (Credit)">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Log Udhaari (Credit)</span>
             </button>
-            <button class="sidebar-btn" data-op-tab="expenses-view">
-                <svg class="ui-icon" viewBox="0 0 24 24">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg> Shift Expenses
+
+            <button class="sidebar-btn" data-op-tab="expenses-view" data-tooltip="Shift Expenses">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Shift Expenses</span>
             </button>
-            <button class="sidebar-btn" data-op-tab="recon-view">
-                <svg class="ui-icon" viewBox="0 0 24 24">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                    <line x1="1" y1="10" x2="23" y2="10"></line>
-                </svg> Payment & End Shift
+
+            <button class="sidebar-btn" data-op-tab="recon-view" data-tooltip="Payment & End Shift">
+                <span class="sidebar-icon-wrap">
+                    <svg class="ui-icon" viewBox="0 0 24 24">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                </span>
+                <span class="sidebar-label-text">Payment & End Shift</span>
             </button>
         </aside>
+
+        <!-- Tooltip Pill for Collapsed Icon Rail (desktop only) -->
+        <div id="sidebar-tooltip-pill" class="sidebar-tooltip-pill" aria-hidden="true"></div>
 
         <main class="app-main" style="padding-bottom: 90px;">
             <!-- Shift Setup Card (If no active shift) -->
@@ -934,22 +973,99 @@
         </div>
     </div>
 
-    <!-- Non-blocking Mobile Drawer Controller -->
+    <!-- Non-blocking Mobile Drawer & Desktop Collapse Controller -->
     <script>
         (function () {
-            const toggleBtn = document.getElementById('mobile-menu-toggle');
-            const closeBtn = document.getElementById('mobile-drawer-close');
             const sidebar = document.getElementById('operator-sidebar');
-            const backdrop = document.getElementById('sidebar-backdrop');
-            const mq = window.matchMedia('(max-width: 860px)');
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+            const closeBtn = document.getElementById('mobile-drawer-close');
+            const backdrop = document.getElementById('drawer-backdrop');
+            const tooltipPill = document.getElementById('sidebar-tooltip-pill');
+            const layout = document.querySelector('.app-layout');
+            const main = document.querySelector('.app-main');
+            if (!sidebar || !toggleBtn || !backdrop) return;
 
-            if (!toggleBtn || !sidebar || !backdrop) return;
+            const mq = window.matchMedia('(max-width: 860px)');
+            const applied = new Map();
+
+            // Inline !important styles beat any stylesheet rule on mobile
+            function force(el, props) {
+                if (!el) return;
+                let keys = applied.get(el);
+                if (!keys) { keys = new Set(); applied.set(el, keys); }
+                for (const k in props) {
+                    el.style.setProperty(k, props[k], 'important');
+                    keys.add(k);
+                }
+            }
+
+            function release() {
+                applied.forEach(function (keys, el) {
+                    keys.forEach(function (k) { el.style.removeProperty(k); });
+                });
+                applied.clear();
+            }
+
+            function applyStatic() {
+                force(layout, { display: 'block', 'grid-template-columns': '1fr', 'padding-left': '0', 'margin-left': '0' });
+                force(main, { 'margin-left': '0', width: '100%', 'max-width': '100%', 'min-width': '0', left: '0', transform: 'none' });
+
+                force(sidebar, {
+                    position: 'fixed', top: '0', left: '0', bottom: '0', right: 'auto',
+                    width: 'min(285px, 82vw)', 'min-width': '0', 'max-width': 'none', height: 'auto',
+                    margin: '0', 'z-index': '999',
+                    display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch', gap: '8px',
+                    'overflow-y': 'auto', 'overflow-x': 'hidden', 'overscroll-behavior': 'contain',
+                    'pointer-events': 'auto', 'will-change': 'transform',
+                    background: 'var(--bg-surface, #12161f)',
+                    'border-right': '1px solid var(--border-subtle, rgba(128,128,128,0.25))',
+                    padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))'
+                });
+
+                sidebar.querySelectorAll('.sidebar-btn').forEach(function (b) {
+                    force(b, {
+                        display: 'flex', 'align-items': 'center', 'justify-content': 'flex-start', gap: '12px',
+                        width: '100%', 'min-height': '48px', padding: '13px 14px',
+                        'font-size': '0.95rem', 'text-indent': '0', overflow: 'visible'
+                    });
+                });
+                sidebar.querySelectorAll('.sidebar-label-text, .sidebar-brand-label').forEach(function (l) {
+                    force(l, {
+                        display: 'inline-block', opacity: '1', width: 'auto', 'max-width': 'none',
+                        visibility: 'visible', transform: 'none', 'font-size': '0.95rem'
+                    });
+                });
+                sidebar.querySelectorAll('.sidebar-section-label, .sidebar-title').forEach(function (l) {
+                    force(l, { display: 'block', opacity: '1', height: 'auto', visibility: 'visible' });
+                });
+                force(sidebar.querySelector('.mobile-drawer-header'), { display: 'flex' });
+
+                ['.sidebar-header-toggle', '#sidebar-toggle-btn', '#sidebar-tooltip-pill', '#sidebar-backdrop'].forEach(function (sel) {
+                    force(document.querySelector(sel), { display: 'none' });
+                });
+            }
+
+            function applyState(open) {
+                force(sidebar, open ? {
+                    transform: 'translate3d(0, 0, 0)',
+                    visibility: 'visible',
+                    'box-shadow': '12px 0 32px rgba(0, 0, 0, 0.45)',
+                    transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s'
+                } : {
+                    transform: 'translate3d(-105%, 0, 0)',
+                    visibility: 'hidden',
+                    'box-shadow': 'none',
+                    transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s linear 0.26s'
+                });
+            }
 
             function setDrawerState(open) {
                 sidebar.classList.toggle('is-open', open);
                 backdrop.classList.toggle('is-open', open);
                 toggleBtn.setAttribute('aria-expanded', String(open));
                 document.body.style.overflow = open ? 'hidden' : '';
+                if (mq.matches) applyState(open);
                 if (open) {
                     var first = sidebar.querySelector('.sidebar-btn');
                     if (first) first.focus({ preventScroll: true });
@@ -958,36 +1074,88 @@
                 }
             }
 
+            function toggleDesktopCollapse() {
+                sidebar.classList.toggle('collapsed');
+                localStorage.setItem('petrocorp_op_sidebar_collapsed', sidebar.classList.contains('collapsed'));
+            }
+
+            function sync() {
+                if (mq.matches) {
+                    applyStatic();
+                    applyState(sidebar.classList.contains('is-open'));
+                } else {
+                    release();
+                    sidebar.classList.remove('is-open');
+                    backdrop.classList.remove('is-open');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                    if (localStorage.getItem('petrocorp_op_sidebar_collapsed') === 'true') {
+                        sidebar.classList.add('collapsed');
+                    }
+                }
+            }
+
+            // Both header hamburger button and sidebar hamburger button trigger navigation
             toggleBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                setDrawerState(!sidebar.classList.contains('is-open'));
+                if (mq.matches) {
+                    setDrawerState(!sidebar.classList.contains('is-open'));
+                } else {
+                    toggleDesktopCollapse();
+                }
             });
+
+            if (sidebarToggleBtn) {
+                sidebarToggleBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (mq.matches) {
+                        setDrawerState(false);
+                    } else {
+                        toggleDesktopCollapse();
+                    }
+                });
+            }
 
             if (closeBtn) closeBtn.addEventListener('click', function () { setDrawerState(false); });
             backdrop.addEventListener('click', function () { setDrawerState(false); });
 
-            // Close on Escape
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setDrawerState(false);
             });
 
-            // Close drawer when a tab is tapped, then jump to top of the new view
+            // Picking a menu item closes the drawer on mobile and returns to the top of the new view
             sidebar.addEventListener('click', function (e) {
-                const tabBtn = e.target.closest('.sidebar-btn');
-                if (tabBtn) {
-                    setDrawerState(false);
-                    if (mq.matches) window.scrollTo({ top: 0, behavior: 'auto' });
+                if (e.target.closest('.sidebar-btn')) {
+                    if (mq.matches) {
+                        setDrawerState(false);
+                        window.scrollTo({ top: 0, behavior: 'auto' });
+                    }
                 }
             });
 
-            // Reset cleanly if rotated or resized to desktop
-            function onBreakpointChange() {
-                if (!mq.matches && sidebar.classList.contains('is-open')) setDrawerState(false);
-            }
-            if (mq.addEventListener) mq.addEventListener('change', onBreakpointChange);
-            else if (mq.addListener) mq.addListener(onBreakpointChange);
+            // Desktop Tooltip Pills for Collapsed Icon Rail
+            sidebar.querySelectorAll('.sidebar-btn').forEach(function (btn) {
+                btn.addEventListener('mouseenter', function () {
+                    if (!tooltipPill || !sidebar.classList.contains('collapsed') || mq.matches) return;
+                    var text = btn.getAttribute('data-tooltip') || btn.querySelector('.sidebar-label-text')?.textContent?.trim();
+                    if (!text) return;
+                    var rect = btn.getBoundingClientRect();
+                    tooltipPill.textContent = text;
+                    tooltipPill.style.top = (rect.top + rect.height / 2) + 'px';
+                    tooltipPill.style.left = (rect.right + 10) + 'px';
+                    tooltipPill.classList.add('show');
+                });
+                btn.addEventListener('mouseleave', function () {
+                    if (tooltipPill) tooltipPill.classList.remove('show');
+                });
+            });
 
-            // Hide sticky summary bar while a field is focused (keyboard open)
+            if (mq.addEventListener) mq.addEventListener('change', sync);
+            else if (mq.addListener) mq.addListener(sync);
+
+            sync();
+
+            // Hide the sticky summary bar while a field is focused (keyboard open)
             var kbdTimer;
             document.addEventListener('focusin', function (e) {
                 if (!mq.matches) return;

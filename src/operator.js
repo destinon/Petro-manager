@@ -200,7 +200,7 @@ function renderPaymentMethodInputs() {
             </label>
             <div class="input-icon-group">
                 <span class="icon">₹</span>
-                <input type="number" step="0.01" class="recon-payment-input" 
+                <input type="number" step="0.01" inputmode="decimal" class="recon-payment-input" 
                        data-method-id="${pm.id}" 
                        placeholder="0.00" 
                        value="${shiftState.payments[pm.id] || ''}">
@@ -435,14 +435,14 @@ async function loadNozzleCards(shift) {
 
                 <div class="form-group" style="margin-bottom: 10px;">
                     <label for="close-${nozzle.id}">Closing Meter Reading</label>
-                    <input type="number" step="0.01" id="close-${nozzle.id}" 
+                    <input type="number" step="0.01" inputmode="decimal" id="close-${nozzle.id}" 
                            class="mono" placeholder="Enter reading" 
                            value="${closingReading !== '' ? closingReading : ''}">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label for="test-${nozzle.id}">Testing Quantity (Litres)</label>
-                    <input type="number" step="0.01" id="test-${nozzle.id}" 
+                    <input type="number" step="0.01" inputmode="decimal" id="test-${nozzle.id}" 
                            class="mono" placeholder="0.00" 
                            value="${testingQty}">
                 </div>
