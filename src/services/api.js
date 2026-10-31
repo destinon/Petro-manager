@@ -15,6 +15,8 @@ export const liveSyncChannel = supabase.channel('petrocorp-live-sync', {
 
 const syncListeners = new Set();
 let debounceTimer = null;
+let channelStatus = 'DISCONNECTED';
+const outgoingQueue = [];
 
 export function onDataSync(callback) {
     syncListeners.add(callback);
@@ -22,16 +24,37 @@ export function onDataSync(callback) {
 }
 
 export function broadcastMutation(entity, action, data = {}) {
+    const payload = { entity, action, data, timestamp: Date.now() };
+    if (channelStatus !== 'SUBSCRIBED') {
+        outgoingQueue.push(payload);
+        // Ensure channel is connecting
+        initRealtimeSync();
+        return;
+    }
     try {
-        if (liveSyncChannel) {
+        liveSyncChannel.send({
+            type: 'broadcast',
+            event: 'data-mutated',
+            payload
+        }).catch(err => {
+            console.warn('Broadcast send notice, re-queuing:', err);
+            outgoingQueue.push(payload);
+        });
+    } catch (err) {
+        console.warn('Broadcast notice:', err);
+    }
+}
+
+function flushQueue() {
+    while (outgoingQueue.length > 0) {
+        const item = outgoingQueue.shift();
+        try {
             liveSyncChannel.send({
                 type: 'broadcast',
                 event: 'data-mutated',
-                payload: { entity, action, data, timestamp: Date.now() }
-            }).catch(err => console.warn('Broadcast send notice:', err));
-        }
-    } catch (err) {
-        console.warn('Broadcast notice:', err);
+                payload: item
+            }).catch(() => {});
+        } catch {}
     }
 }
 
@@ -52,14 +75,22 @@ export function initRealtimeSync() {
                 entity: payload.table,
                 action: payload.eventType,
                 table: payload.table,
+                data: payload.new || payload.old || {},
                 new: payload.new,
                 old: payload.old
             });
         })
         .subscribe((status) => {
+            channelStatus = status;
             console.log('[Live Sync Channel Status]:', status);
+            if (status === 'SUBSCRIBED') {
+                flushQueue();
+            }
         });
 }
+
+// Auto-initialize realtime sync immediately on load
+initRealtimeSync();
 
 function notifySync(detail) {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -513,7 +544,6 @@ export async function deleteNozzle(nozzleId, deleteHistory = true) {
     // Try deleting from DB
     try {
         if (deleteHistory) {
-            await supabase.from('shift_nozzle_readings').delete().eq('nozzle_id', id);
             await supabase.from('shift_readings').delete().eq('nozzle_id', id);
         }
         await supabase.from('nozzles').delete().eq('id', id);
@@ -782,25 +812,32 @@ export async function saveDailyRates(date, ratesArray, userId) {
     }));
     localStorage.setItem('petrocorp_daily_rates_' + date, JSON.stringify(mapped));
 
-    // Save to Supabase: support both schema with ms_rate/hsd_rate and normalized schema
+    // Save to Supabase: support schema with ms_rate/hsd_rate and normalized rates
     const msRate = ratesArray.find(r => parseInt(r.fuel_type_id) === 1)?.rate;
     const hsdRate = ratesArray.find(r => parseInt(r.fuel_type_id) === 2)?.rate;
 
     try {
-        const { error: wideErr } = await supabase
+        const { data: existing } = await supabase
             .from('daily_rates')
-            .upsert([{ date, ms_rate: parseFloat(msRate || 0), hsd_rate: parseFloat(hsdRate || 0) }], { onConflict: 'date' });
-        if (!wideErr) {
-            broadcastMutation('daily_rates', 'update', { date, ratesArray });
-            return;
-        }
-    } catch {}
+            .select('id')
+            .eq('date', date)
+            .maybeSingle();
 
-    try {
-        const { error } = await supabase
-            .from('daily_rates')
-            .upsert(payload, { onConflict: 'date, fuel_type_id' });
-        if (error) console.warn('Notice saving rates to DB:', error);
+        const rowData = {
+            date,
+            effective_date: date,
+            ms_rate: parseFloat(msRate || 0),
+            hsd_rate: parseFloat(hsdRate || 0),
+            rate: parseFloat(msRate || 0),
+            set_by: userId,
+            updated_at: new Date().toISOString()
+        };
+
+        if (existing?.id) {
+            await supabase.from('daily_rates').update(rowData).eq('id', existing.id);
+        } else {
+            await supabase.from('daily_rates').insert([rowData]);
+        }
     } catch (err) {
         console.warn('Notice saving daily rates to DB:', err);
     }
@@ -842,15 +879,10 @@ export async function fetchActiveShift(operatorId, date) {
 
         // Pull existing readings
         try {
-            let { data: readings } = await supabase
-                .from('shift_nozzle_readings')
+            const { data: readings } = await supabase
+                .from('shift_readings')
                 .select('*')
                 .eq('shift_id', shift.id);
-
-            if (!readings || readings.length === 0) {
-                const fb = await supabase.from('shift_readings').select('*').eq('shift_id', shift.id);
-                readings = fb.data || [];
-            }
             shift.shift_nozzle_readings = readings || [];
         } catch {
             shift.shift_nozzle_readings = [];
@@ -938,27 +970,30 @@ export async function saveNozzleReading(shiftId, readingData) {
         sales_amount: parseFloat(readingData.sales_amount)
     };
 
-    // 1. Primary canonical table: shift_readings
-    let res = await supabase
-        .from('shift_readings')
-        .upsert(payload, { onConflict: 'shift_id, nozzle_id' });
+    let res = null;
+    try {
+        const { data: existing } = await supabase
+            .from('shift_readings')
+            .select('id')
+            .eq('shift_id', shiftId)
+            .eq('nozzle_id', readingData.nozzle_id)
+            .maybeSingle();
 
-    if (res.error) {
-        // Fallback to shift_nozzle_readings
-        res = await supabase
-            .from('shift_nozzle_readings')
-            .upsert({
-                shift_id: shiftId,
-                nozzle_id: payload.nozzle_id,
-                opening_reading: payload.opening_reading,
-                closing_reading: payload.closing_reading,
-                testing_qty: payload.testing_qty,
-                rate: payload.rate,
-                sales_amount: payload.sales_amount
-            }, { onConflict: 'shift_id, nozzle_id' });
+        if (existing?.id) {
+            res = await supabase
+                .from('shift_readings')
+                .update({ ...payload, updated_at: new Date().toISOString() })
+                .eq('id', existing.id);
+        } else {
+            res = await supabase
+                .from('shift_readings')
+                .insert([payload]);
+        }
+    } catch (err) {
+        console.warn('Error saving shift reading to DB:', err);
     }
 
-    // Fallback: save to local active shift cache if remote table constraints conflict
+    // Also cache locally for offline resilience
     try {
         const key = `petrocorp_shift_${shiftId}_readings`;
         const stored = JSON.parse(localStorage.getItem(key) || '{}');
@@ -979,10 +1014,13 @@ export async function saveShiftPayments(shiftId, paymentsMap) {
             amount: parseFloat(p.amount || 0)
         }));
 
-        await supabase
-            .from('shift_payments')
-            .upsert(records, { onConflict: 'shift_id, payment_method_id' });
-    } catch {}
+        await supabase.from('shift_payments').delete().eq('shift_id', shiftId);
+        if (records.length > 0) {
+            await supabase.from('shift_payments').insert(records);
+        }
+    } catch (err) {
+        console.warn('Notice saving shift payments:', err);
+    }
 
     // Also cache locally
     try {
@@ -1082,31 +1120,31 @@ export async function saveShiftAsDraft(shiftId, { totalSales, totalDeductions, e
 // ==========================================
 
 export async function fetchSubmittedShifts() {
-    const { data, error } = await supabase
-        .from('shifts')
-        .select(`
-            *,
-            shift_types(name),
-            profiles:operator_id(full_name)
-        `)
-        .eq('status', 'submitted')
-        .order('date', { ascending: false })
-        .order('id', { ascending: false });
-
-    if (error) {
-        // Fallback with employees
-        const fallback = await supabase
+    try {
+        const { data, error } = await supabase
             .from('shifts')
             .select(`
                 *,
-                shift_types(name),
-                employees:operator_id(full_name)
+                shift_types(name)
             `)
             .eq('status', 'submitted')
-            .order('date', { ascending: false });
-        return fallback.data || [];
+            .order('date', { ascending: false })
+            .order('id', { ascending: false });
+
+        if (error || !data) return [];
+
+        // Attach operator name from employees/profiles
+        const employees = await fetchEmployees();
+        const empMap = new Map(employees.map(e => [e.id, e.full_name || e.name]));
+
+        return data.map(s => ({
+            ...s,
+            profiles: { full_name: empMap.get(s.operator_id) || s.operator_name || 'Operator' }
+        }));
+    } catch (err) {
+        console.warn('Error fetching submitted shifts:', err);
+        return [];
     }
-    return data || [];
 }
 
 export async function fetchShiftFullDetails(shiftId) {
@@ -1115,9 +1153,8 @@ export async function fetchShiftFullDetails(shiftId) {
         .select(`
             *,
             shift_types(name),
-            profiles:operator_id(full_name),
             shift_rate_snapshots(rate, fuel_types(name)),
-            shift_nozzle_readings(*, nozzles(name, fuel_types(name))),
+            shift_readings(*, nozzles(name, fuel_types(name))),
             shift_payments(*, payment_methods(name)),
             shift_expenses(*, expense_categories(name)),
             credit_transactions(*, customers(name), fuel_types(name))
@@ -1126,6 +1163,14 @@ export async function fetchShiftFullDetails(shiftId) {
         .single();
 
     if (error) throw error;
+    if (data) {
+        data.shift_nozzle_readings = data.shift_readings || [];
+        if (!data.profiles?.full_name) {
+            const employees = await fetchEmployees();
+            const emp = employees.find(e => e.id === data.operator_id);
+            data.profiles = { full_name: emp?.full_name || emp?.name || data.operator_name || 'Operator' };
+        }
+    }
     return data;
 }
 
@@ -1142,7 +1187,7 @@ export async function approveShift(shiftId, managerId) {
 
     if (shiftErr) throw shiftErr;
 
-    // 2. Advance nozzle master readings: query canonical shift_readings first, fallback to shift_nozzle_readings
+    // 2. Advance nozzle master readings from shift_readings
     let readings = null;
     try {
         const { data } = await supabase
@@ -1151,16 +1196,6 @@ export async function approveShift(shiftId, managerId) {
             .eq('shift_id', shiftId);
         if (data && data.length > 0) readings = data;
     } catch {}
-
-    if (!readings || readings.length === 0) {
-        try {
-            const fallback = await supabase
-                .from('shift_nozzle_readings')
-                .select('nozzle_id, closing_reading')
-                .eq('shift_id', shiftId);
-            readings = fallback.data;
-        } catch {}
-    }
 
     if (readings && readings.length > 0) {
         for (const r of readings) {
@@ -1420,24 +1455,29 @@ export async function saveTankDip({ date, tank_id, dip_reading_mm, water_dip_mm,
         recorded_by
     };
 
-    let res = await supabase
-        .from('tank_dip_readings')
-        .upsert(payload, { onConflict: 'date, tank_id' });
+    let res = null;
+    try {
+        const { data: existing } = await supabase
+            .from('tank_dip_readings')
+            .select('id')
+            .eq('date', date)
+            .eq('tank_id', parseInt(tank_id))
+            .maybeSingle();
 
-    if (res.error) {
-        // Fallback to tank_readings
-        res = await supabase
-            .from('tank_readings')
-            .upsert({
-                date,
-                tank_id: parseInt(tank_id),
-                fuel_dip: parseFloat(dip_reading_mm || 0),
-                water_dip: parseFloat(water_dip_mm || 0),
-                calculated_stock: parseFloat(calculated_litres)
-            }, { onConflict: 'date, tank_id' });
+        if (existing?.id) {
+            res = await supabase
+                .from('tank_dip_readings')
+                .update(payload)
+                .eq('id', existing.id);
+        } else {
+            res = await supabase
+                .from('tank_dip_readings')
+                .insert([payload]);
+        }
+    } catch (err) {
+        console.warn('Error saving tank dip to DB:', err);
     }
 
-    if (res.error) throw res.error;
     broadcastMutation('tank_dip_readings', 'insert', payload);
     return res;
 }
@@ -1451,20 +1491,9 @@ export async function saveFuelReceipt({ date, tank_id, quantity_litres, invoice_
         recorded_by
     };
 
-    let res = await supabase
+    const res = await supabase
         .from('fuel_receipts')
         .insert([payload]);
-
-    if (res.error) {
-        // Fallback to fuel_deliveries
-        res = await supabase
-            .from('fuel_deliveries')
-            .insert([{
-                date,
-                tank_id: parseInt(tank_id),
-                receipt_quantity: parseFloat(quantity_litres)
-            }]);
-    }
 
     if (res.error) throw res.error;
     broadcastMutation('fuel_receipts', 'insert', payload);
@@ -1472,34 +1501,18 @@ export async function saveFuelReceipt({ date, tank_id, quantity_litres, invoice_
 }
 
 export async function fetchTankDipsForDate(date) {
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from('tank_dip_readings')
         .select('*, tanks(id, name, capacity_litres, fuel_types(id, name))')
         .eq('date', date);
-
-    if (error || !data) {
-        const fallback = await supabase
-            .from('tank_readings')
-            .select('*, tanks(id, name, capacity, fuel_types(id, name))')
-            .eq('date', date);
-        return fallback.data || [];
-    }
     return data || [];
 }
 
 export async function fetchFuelReceiptsForDate(date) {
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from('fuel_receipts')
         .select('*, tanks(id, name, fuel_types(id, name))')
         .eq('date', date);
-
-    if (error || !data) {
-        const fallback = await supabase
-            .from('fuel_deliveries')
-            .select('*, tanks(id, name, fuel_types(id, name))')
-            .eq('date', date);
-        return fallback.data || [];
-    }
     return data || [];
 }
 
@@ -1533,22 +1546,12 @@ export async function generateDSSRData(date) {
 
     let nozzleReadings = [];
     if (shiftIds.length > 0) {
-        // Query canonical table shift_readings first
+        // Query shift_readings — the real canonical table
         const { data: readings } = await supabase
             .from('shift_readings')
             .select('*, nozzles(id, name, fuel_type_id)')
             .in('shift_id', shiftIds);
-        
-        if (readings && readings.length > 0) {
-            nozzleReadings = readings;
-        } else {
-            // fallback to legacy shift_nozzle_readings
-            const { data: fbReadings } = await supabase
-                .from('shift_nozzle_readings')
-                .select('*, nozzles(id, name, fuel_type_id)')
-                .in('shift_id', shiftIds);
-            nozzleReadings = fbReadings || [];
-        }
+        nozzleReadings = readings || [];
     }
 
     // 6. Fetch Today and Yesterday's Tank Dips
@@ -1671,7 +1674,7 @@ const KNOWN_TABLES = [
     { name: 'daily_rates', display: 'Daily Fuel Rates' },
     { name: 'shifts', display: 'Shifts' },
     { name: 'shift_rate_snapshots', display: 'Shift Rate Snapshots' },
-    { name: 'shift_nozzle_readings', display: 'Nozzle Readings' },
+    { name: 'shift_readings', display: 'Nozzle Readings' },
     { name: 'shift_payments', display: 'Shift Payments' },
     { name: 'shift_expenses', display: 'Shift Expenses' },
     { name: 'credit_transactions', display: 'Credit Transactions' },
@@ -1727,6 +1730,9 @@ export async function fetchTableRowById(tableName, id, idColumn = 'id') {
         .single();
 
     if (error) throw error;
+    if (data) {
+        data.shift_nozzle_readings = data.shift_readings || [];
+    }
     return data;
 }
 

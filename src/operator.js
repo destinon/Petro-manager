@@ -65,29 +65,38 @@ export async function initOperatorDashboard(state) {
     onDataSync(async (event) => {
         const entity = event.entity || event.table;
         if (entity === 'daily_rates') {
-            // Live update today's rates in shift initialization form if shift isn't started yet
+            const today = getTodayDateString();
+            const rates = await fetchDailyRates(today);
+            const ms = rates.find(r => r.fuel_type_id === 1)?.rate || 0;
+            const hsd = rates.find(r => r.fuel_type_id === 2)?.rate || 0;
+            const msEl = document.getElementById('rate-ms');
+            const hsdEl = document.getElementById('rate-hsd');
+            if (msEl) msEl.textContent = formatCurrency(ms);
+            if (hsdEl) hsdEl.textContent = formatCurrency(hsd);
             if (!shiftState.shiftId) {
-                const today = getTodayDateString();
-                const rates = await fetchDailyRates(today);
-                const ms = rates.find(r => r.fuel_type_id === 1)?.rate || 0;
-                const hsd = rates.find(r => r.fuel_type_id === 2)?.rate || 0;
-                const msEl = document.getElementById('rate-ms');
-                const hsdEl = document.getElementById('rate-hsd');
-                if (msEl) msEl.textContent = formatCurrency(ms);
-                if (hsdEl) hsdEl.textContent = formatCurrency(hsd);
+                toast.info(`Fuel rates updated: MS ${formatCurrency(ms)} | HSD ${formatCurrency(hsd)}`);
             }
         } else if (entity === 'nozzles' || entity === 'operator_nozzle_assignments') {
-            if (!shiftState.shiftId && appState?.currentUser?.id) {
+            if (appState?.currentUser?.id) {
                 const assignedNozzles = await fetchNozzlesForOperator(appState.currentUser.id);
                 shiftState.nozzles = assignedNozzles;
             }
-        } else if (entity === 'customers') {
+        } else if (entity === 'customers' || entity === 'credit_transactions') {
             const customers = await fetchCustomers();
             shiftState.customers = customers || [];
             populateCustomerDropdown();
-        } else if (entity === 'shifts' && shiftState.shiftId && event.data?.id === shiftState.shiftId) {
-            if (event.action === 'update' && (event.data?.status === 'approved' || event.data?.status === 'rejected')) {
-                toast(`Your shift was ${event.data.status} by the manager`, event.data.status === 'approved' ? 'success' : 'warning');
+        } else if (entity === 'shifts') {
+            const incomingId = event.data?.id || event.data?.shiftId || event.new?.id;
+            const newStatus = event.data?.status || event.new?.status;
+            if (shiftState.shiftId && incomingId === shiftState.shiftId) {
+                if (newStatus === 'approved') {
+                    toast.success('🎉 Your shift was APPROVED by Station Manager!');
+                    await checkOrRestoreActiveShift();
+                } else if (newStatus === 'rejected') {
+                    const reason = event.data?.reason || event.new?.rejection_reason || 'Please check with manager';
+                    toast.error(`⚠️ Shift rejected: ${reason}`);
+                    await checkOrRestoreActiveShift();
+                }
             }
         }
     });

@@ -58,22 +58,35 @@ export async function initManagerDashboard(state) {
         const curDate = document.getElementById('dssr-date-input')?.value || today;
         const entity = event.entity || event.table;
 
+        // If viewing this table in DB Console, refresh live
+        if (dbConsoleState.currentTable && (dbConsoleState.currentTable === entity || (entity === 'shift_readings' && dbConsoleState.currentTable === 'shift_nozzle_readings'))) {
+            loadDatabaseTable();
+        }
+
         if (entity === 'daily_rates') {
             loadTodayRates(today);
             loadDSSR(curDate);
         } else if (entity === 'shifts') {
             loadPendingApprovals();
             loadDSSR(curDate);
+            const status = event.data?.status || event.new?.status;
+            if (status === 'submitted') {
+                toast.info('🔔 Operator submitted shift for approval!');
+            }
         } else if (entity === 'shift_readings' || entity === 'shift_nozzle_readings' || entity === 'shift_payments' || entity === 'shift_expenses') {
             loadDSSR(curDate);
             const approvalsView = document.getElementById('mgr-approvals-view');
             if (approvalsView && !approvalsView.classList.contains('hidden')) {
                 loadPendingApprovals();
             }
-        } else if (entity === 'nozzles') {
+        } else if (entity === 'nozzles' || entity === 'pumps') {
             loadHardwareList();
             loadDSSR(curDate);
-        } else if (entity === 'employees') {
+        } else if (entity === 'tanks') {
+            loadHardwareList();
+            loadTanksDropdowns();
+            loadDSSR(curDate);
+        } else if (entity === 'employees' || entity === 'profiles') {
             const empView = document.getElementById('mgr-employees-view');
             if (empView && !empView.classList.contains('hidden')) {
                 loadEmployeesRoster();
@@ -85,6 +98,8 @@ export async function initManagerDashboard(state) {
             }
         } else if (entity === 'tank_dip_readings' || entity === 'fuel_receipts') {
             loadDSSR(curDate);
+        } else if (entity === 'station_settings') {
+            loadStationSettingsForm();
         }
     });
 
@@ -1605,6 +1620,30 @@ function closeModal() {
 // 8. DATABASE CONSOLE (FULL CRUD)
 // ==========================================
 
+const DB_TABLE_COLUMNS = {
+    profiles: ['full_name', 'role', 'email', 'phone', 'is_active'],
+    employees: ['full_name', 'name', 'role', 'email', 'phone', 'is_active'],
+    fuel_types: ['name', 'display_name', 'sort_order', 'is_active'],
+    pumps: ['name', 'description', 'is_active'],
+    nozzles: ['name', 'pump_id', 'fuel_type_id', 'fuel_type', 'master_reading', 'sort_order', 'is_active'],
+    tanks: ['name', 'fuel_type_id', 'fuel_type', 'capacity', 'capacity_litres', 'current_dip_mm', 'current_stock_litres', 'is_active'],
+    payment_methods: ['name', 'sort_order', 'is_active'],
+    shift_types: ['name', 'start_time', 'end_time', 'sort_order', 'is_active'],
+    expense_categories: ['name', 'is_active'],
+    customers: ['name', 'vehicle_number', 'contact_info', 'opening_balance', 'is_active'],
+    station_settings: ['key', 'value'],
+    operator_nozzle_assignments: ['operator_id', 'nozzle_id'],
+    daily_rates: ['date', 'effective_date', 'fuel_type_id', 'rate', 'ms_rate', 'hsd_rate', 'set_by'],
+    shifts: ['date', 'shift_type_id', 'shift_type', 'operator_id', 'status', 'total_sales_amount', 'total_deductions', 'short_extra_cash', 'ms_rate', 'hsd_rate', 'is_closed', 'approved_by', 'rejection_reason', 'notes'],
+    shift_rate_snapshots: ['shift_id', 'fuel_type_id', 'rate'],
+    shift_readings: ['shift_id', 'nozzle_id', 'opening_reading', 'closing_reading', 'testing_qty', 'net_sale_qty', 'rate', 'sales_amount'],
+    shift_payments: ['shift_id', 'payment_method_id', 'amount', 'notes'],
+    shift_expenses: ['shift_id', 'category_id', 'amount', 'description'],
+    credit_transactions: ['customer_id', 'shift_id', 'date', 'type', 'fuel_type_id', 'quantity', 'rate', 'amount', 'vehicle_number', 'payment_method_id', 'notes'],
+    tank_dip_readings: ['date', 'tank_id', 'dip_reading_mm', 'water_dip_mm', 'calculated_litres', 'source'],
+    fuel_receipts: ['date', 'tank_id', 'quantity_litres', 'invoice_number']
+};
+
 let dbConsoleState = {
     currentTable: '',
     currentPage: 0,
@@ -1631,6 +1670,7 @@ function setupDatabaseConsole() {
     tableSelect.addEventListener('change', () => {
         dbConsoleState.currentTable = tableSelect.value;
         dbConsoleState.currentPage = 0;
+        dbConsoleState.columns = []; // Reset columns when table changes to prevent stale Insert form fields
         if (dbConsoleState.currentTable) {
             loadDatabaseTable();
         }
@@ -1950,10 +1990,13 @@ function openDbInsertModal() {
 
     if (modalTitle) modalTitle.textContent = `Insert New Row into "${tableName}"`;
 
-    // Use columns from existing data, or provide a text area for JSON
-    const columns = dbConsoleState.columns.length > 0
-        ? dbConsoleState.columns.filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at')
-        : [];
+    // Use known schema columns if defined, or infer from loaded rows
+    const knownCols = DB_TABLE_COLUMNS[tableName];
+    const columns = knownCols
+        ? [...knownCols]
+        : (dbConsoleState.columns.length > 0
+            ? dbConsoleState.columns.filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at')
+            : []);
 
     if (columns.length > 0) {
         if (modalBody) {

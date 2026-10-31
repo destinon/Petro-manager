@@ -1,0 +1,558 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* =====================================================================
+   PetroCorp console theme (manager.html + operator.html)
+   Load AFTER style.css:  <link rel="stylesheet" href="theme.css">
+   It re-maps the existing CSS variables, so components rendered by your
+   JS pick up the new look too. No layout/JS behaviour is changed.
+   ===================================================================== */
+
+/* ---------- Tokens ---------- */
+:root,
+:root[data-theme="light"] {
+    --pc-page: #e8eef6;
+    --pc-surface: #f8fafc;
+    --pc-surface-2: #eef3f9;
+    --pc-line: #d3deea;
+    --pc-line-strong: #9fb3c9;
+    --pc-ink: #10243a;
+    --pc-muted: #5b6f86;
+    --pc-primary: #2b5f82;
+    --pc-primary-hover: #214c69;
+    --pc-on-primary: #ffffff;
+    --pc-primary-soft: #dde9f4;
+    --pc-amber: #f4c542;
+    --pc-nav: #10243a;
+    --pc-ms: #cf7a12;
+    --pc-hsd: #2b7fa8;
+    --pc-ok: #1b6a3d;
+    --pc-bad: #b02a2a;
+    --pc-warn: #9a6700;
+    --pc-shadow: 0 1px 2px rgba(16, 36, 58, .06), 0 10px 24px -16px rgba(16, 36, 58, .25);
+}
+
+:root[data-theme="dark"] {
+    --pc-page: #0b1522;
+    --pc-surface: #132235;
+    --pc-surface-2: #0f1c2d;
+    --pc-line: #25405a;
+    --pc-line-strong: #34506b;
+    --pc-ink: #e8f0f8;
+    --pc-muted: #93a9c0;
+    --pc-primary: #5aa3cf;
+    --pc-primary-hover: #7bb8de;
+    --pc-on-primary: #08233a;
+    --pc-primary-soft: #1a3a56;
+    --pc-nav: #08121e;
+    --pc-ms: #ffb454;
+    --pc-hsd: #6cc3e8;
+    --pc-ok: #8fe0b0;
+    --pc-bad: #ff9a9a;
+    --pc-warn: #f4c542;
+    --pc-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 24px -16px rgba(0, 0, 0, .7);
+}
+
+/* Re-map the variables the existing stylesheet / JS already use */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+    --bg-body: var(--pc-page);
+    --bg-app: var(--pc-page);
+    --bg-main: var(--pc-page);
+    --bg-surface: var(--pc-surface);
+    --bg-card: var(--pc-surface);
+    --bg-elevated: var(--pc-surface);
+    --bg-surface-muted: var(--pc-surface-2);
+    --text-primary: var(--pc-ink);
+    --text-secondary: var(--pc-muted);
+    --text-muted: var(--pc-muted);
+    --border-subtle: var(--pc-line);
+    --border-default: var(--pc-line);
+    --border-strong: var(--pc-line-strong);
+    --accent-primary: var(--pc-primary);
+    --accent-hover: var(--pc-primary-hover);
+    --fuel-ms: var(--pc-ms);
+    --fuel-hsd: var(--pc-hsd);
+    --success: var(--pc-ok);
+    --danger: var(--pc-bad);
+    --warning: var(--pc-warn);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+}
+
+/* ---------- Base ---------- */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    background: var(--pc-page);
+    color: var(--pc-ink);
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.grid-background {
+    display: none;
+}
+
+.mono,
+.stat-value,
+.summary-metric-val,
+.reading-preview-value {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+h2 {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 4px;
+}
+
+h3 {
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.subtitle {
+    color: var(--pc-muted);
+    font-size: .92rem;
+    margin: 0 0 18px;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a.btn {
+    touch-action: manipulation;
+}
+
+:focus-visible {
+    outline: 3px solid var(--pc-primary);
+    outline-offset: 2px;
+}
+
+/* ---------- Header: branded navy bar ---------- */
+.app-header {
+    background: var(--pc-nav);
+    color: #fff;
+    border-bottom: 3px solid var(--pc-amber);
+    box-shadow: none;
+}
+
+.app-header .brand-title {
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: -.02em;
+}
+
+.app-header .brand-icon {
+    background: var(--pc-amber);
+    color: var(--pc-nav);
+    border-radius: 10px;
+}
+
+.app-header .brand-icon-svg {
+    stroke: var(--pc-nav);
+}
+
+.station-badge {
+    background: transparent;
+    color: #cfe0ef;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.app-header .user-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+.user-role-badge {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.user-role-badge.role-manager {
+    background: var(--pc-amber);
+    color: #10243a;
+}
+
+.user-role-badge.role-operator {
+    background: #a9c4d8;
+    color: #10243a;
+}
+
+.app-header .btn-secondary,
+.app-header .theme-toggle-btn {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .3);
+}
+
+.app-header .btn-secondary:hover,
+.app-header .theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, .12);
+}
+
+.app-header .btn-primary {
+    background: var(--pc-amber);
+    color: #10243a;
+    border: 0;
+}
+
+.app-header .btn-primary:hover {
+    background: #ffd35c;
+}
+
+.theme-toggle-btn {
+    border-radius: 50%;
+}
+
+/* ---------- Sidebar ---------- */
+.app-sidebar {
+    background: var(--pc-surface);
+    border-color: var(--pc-line);
+}
+
+.sidebar-section-label,
+.sidebar-title,
+.sidebar-brand-label {
+    color: var(--pc-muted);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.sidebar-btn {
+    color: var(--pc-ink);
+    background: transparent;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background .15s, color .15s;
+}
+
+.sidebar-btn:hover {
+    background: var(--pc-surface-2);
+}
+
+.sidebar-btn.active {
+    background: var(--pc-primary-soft);
+    color: var(--pc-primary);
+    box-shadow: inset 3px 0 0 var(--pc-amber);
+}
+
+:root[data-theme="dark"] .sidebar-btn.active {
+    color: #fff;
+}
+
+.sidebar-toggle-btn {
+    color: var(--pc-ink);
+    border-radius: 10px;
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--pc-surface-2);
+}
+
+.sidebar-tooltip-pill {
+    background: var(--pc-nav);
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+/* ---------- Cards & stats ---------- */
+.card {
+    background: var(--pc-surface);
+    border: 1px solid var(--pc-line);
+    border-radius: 14px;
+    box-shadow: none;
+}
+
+.card-elevated {
+    box-shadow: var(--pc-shadow);
+}
+
+.stats-grid {
+    gap: 16px;
+}
+
+.stat-card {
+    background: var(--pc-surface);
+    border: 1px solid var(--pc-line);
+    border-left: 4px solid var(--pc-primary);
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+/* the left edge follows the fuel colours: revenue, petrol, diesel, variance */
+.stat-card:nth-child(1) {
+    border-left-color: var(--pc-amber);
+}
+
+.stat-card:nth-child(2) {
+    border-left-color: var(--pc-ms);
+}
+
+.stat-card:nth-child(3) {
+    border-left-color: var(--pc-hsd);
+}
+
+.stat-label {
+    color: var(--pc-muted);
+    font-weight: 600;
+    font-size: .84rem;
+}
+
+.stat-value {
+    font-weight: 700;
+    font-size: 1.55rem;
+    letter-spacing: -.02em;
+    color: var(--pc-ink);
+}
+
+.stat-subtext {
+    color: var(--pc-muted);
+    font-size: .8rem;
+}
+
+.nozzles-grid>* {
+    border-radius: 14px;
+}
+
+.reading-preview {
+    border-radius: 8px;
+}
+
+.reading-preview-label {
+    color: var(--pc-muted);
+}
+
+.reading-preview-value {
+    font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    border-radius: 8px;
+    font-weight: 700;
+    transition: background .15s, border-color .15s, transform .1s;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background: var(--pc-primary);
+    color: var(--pc-on-primary);
+    border: 0;
+}
+
+.btn-primary:hover {
+    background: var(--pc-primary-hover);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--pc-ink);
+    border: 1.5px solid var(--pc-line-strong);
+}
+
+.btn-secondary:hover {
+    background: var(--pc-surface-2);
+    border-color: var(--pc-primary);
+}
+
+.btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.ui-icon {
+    stroke-width: 2;
+}
+
+/* ---------- Forms ---------- */
+label {
+    font-weight: 600;
+    font-size: .86rem;
+    color: var(--pc-ink);
+}
+
+.app-main input:not([type="checkbox"]):not([type="radio"]),
+.app-main select,
+.app-main textarea,
+.modal-dialog input:not([type="checkbox"]):not([type="radio"]),
+.modal-dialog select,
+.modal-dialog textarea {
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--pc-line-strong);
+    border-radius: 8px;
+    background: var(--pc-surface);
+    color: var(--pc-ink);
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.app-main input:focus,
+.app-main select:focus,
+.app-main textarea:focus,
+.modal-dialog input:focus,
+.modal-dialog select:focus,
+.modal-dialog textarea:focus {
+    outline: none;
+    border-color: var(--pc-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-primary) 22%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--pc-muted);
+    opacity: .7;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--pc-primary);
+}
+
+/* ---------- Tables ---------- */
+.table-responsive {
+    background: var(--pc-surface);
+    border: 1px solid var(--pc-line);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.data-table th {
+    background: var(--pc-surface-2);
+    color: var(--pc-muted);
+    font-size: .78rem;
+    font-weight: 700;
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--pc-line);
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--pc-line);
+    font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.data-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--pc-primary) 6%, transparent);
+}
+
+/* ---------- Sticky shift summary bar (operator) ---------- */
+.shift-summary-bar {
+    background: var(--pc-surface);
+    border-top: 3px solid var(--pc-amber);
+    box-shadow: 0 -10px 30px -18px rgba(16, 36, 58, .45);
+}
+
+.summary-metric-label {
+    color: var(--pc-muted);
+    font-size: .74rem;
+    font-weight: 600;
+}
+
+.summary-metric-val {
+    font-weight: 700;
+}
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+    background: rgba(8, 18, 30, .55);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.modal-dialog {
+    background: var(--pc-surface);
+    color: var(--pc-ink);
+    border: 1px solid var(--pc-line);
+    border-radius: 18px;
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .55);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--pc-line);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--pc-line);
+}
+
+.modal-title {
+    font-weight: 800;
+    letter-spacing: -.01em;
+}
+
+/* ---------- Scrollbars ---------- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--pc-line-strong) transparent;
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 700px) {
+    h2 {
+        font-size: 1.25rem;
+    }
+
+    .app-main input:not([type="checkbox"]):not([type="radio"]),
+    .app-main select,
+    .app-main textarea,
+    .modal-dialog input:not([type="checkbox"]):not([type="radio"]),
+    .modal-dialog select,
+    .modal-dialog textarea {
+        font-size: 16px;
+    }
+
+    /* stops iOS zoom-on-focus */
+
+    .btn {
+        min-height: 44px;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}

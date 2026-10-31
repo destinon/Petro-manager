@@ -295,19 +295,19 @@ CREATE TABLE IF NOT EXISTS public.shift_rate_snapshots (
     UNIQUE(shift_id, fuel_type_id)
 );
 
--- Shift Nozzle Readings
-CREATE TABLE IF NOT EXISTS public.shift_nozzle_readings (
+-- Shift Nozzle Readings (Canonical table: shift_readings)
+CREATE TABLE IF NOT EXISTS public.shift_readings (
     id SERIAL PRIMARY KEY,
     shift_id INTEGER NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
     nozzle_id INTEGER NOT NULL REFERENCES public.nozzles(id) ON DELETE CASCADE,
-    opening_reading DECIMAL(14, 2) NOT NULL,
-    closing_reading DECIMAL(14, 2) NOT NULL,
+    opening_reading DECIMAL(14, 2) NOT NULL DEFAULT 0,
+    closing_reading DECIMAL(14, 2) NOT NULL DEFAULT 0,
     testing_qty DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    net_sale_qty DECIMAL(12, 2) GENERATED ALWAYS AS (closing_reading - opening_reading - testing_qty) STORED,
+    net_sale_qty DECIMAL(12, 2) NOT NULL DEFAULT 0,
     rate DECIMAL(10, 2),
     sales_amount DECIMAL(14, 2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(shift_id, nozzle_id)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Shift Payment Breakdown
@@ -392,23 +392,8 @@ FROM public.customers c
 LEFT JOIN public.credit_transactions ct ON ct.customer_id = c.id
 GROUP BY c.id;
 
--- Safely convert old empty tables to views for backwards-compatibility
-DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shift_readings') THEN
-        DROP TABLE public.shift_readings CASCADE;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shift_rates') THEN
-        DROP TABLE public.shift_rates CASCADE;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tank_readings') THEN
-        DROP TABLE public.tank_readings CASCADE;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'fuel_deliveries') THEN
-        DROP TABLE public.fuel_deliveries CASCADE;
-    END IF;
-END $$;
-
-CREATE OR REPLACE VIEW public.shift_readings AS SELECT * FROM public.shift_nozzle_readings;
+-- Backward-compatible views
+CREATE OR REPLACE VIEW public.shift_nozzle_readings AS SELECT * FROM public.shift_readings;
 CREATE OR REPLACE VIEW public.shift_rates AS SELECT * FROM public.shift_rate_snapshots;
 CREATE OR REPLACE VIEW public.tank_readings AS SELECT * FROM public.tank_dip_readings;
 CREATE OR REPLACE VIEW public.fuel_deliveries AS SELECT * FROM public.fuel_receipts;
@@ -516,6 +501,10 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, servi
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO postgres, anon, authenticated, service_role;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fuel_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pumps ENABLE ROW LEVEL SECURITY;
@@ -530,7 +519,7 @@ ALTER TABLE public.operator_nozzle_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_rate_snapshots ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.shift_nozzle_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shift_readings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
@@ -587,8 +576,8 @@ CREATE POLICY "Public access shifts" ON public.shifts FOR ALL USING (true) WITH 
 DROP POLICY IF EXISTS "Public access shift_rate_snapshots" ON public.shift_rate_snapshots;
 CREATE POLICY "Public access shift_rate_snapshots" ON public.shift_rate_snapshots FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public access shift_nozzle_readings" ON public.shift_nozzle_readings;
-CREATE POLICY "Public access shift_nozzle_readings" ON public.shift_nozzle_readings FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public access shift_readings" ON public.shift_readings;
+CREATE POLICY "Public access shift_readings" ON public.shift_readings FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public access shift_payments" ON public.shift_payments;
 CREATE POLICY "Public access shift_payments" ON public.shift_payments FOR ALL USING (true) WITH CHECK (true);
@@ -605,5 +594,51 @@ CREATE POLICY "Public access tank_dip_readings" ON public.tank_dip_readings FOR 
 DROP POLICY IF EXISTS "Public access fuel_receipts" ON public.fuel_receipts;
 CREATE POLICY "Public access fuel_receipts" ON public.fuel_receipts FOR ALL USING (true) WITH CHECK (true);
 
--- 10. REFRESH POSTGREST SCHEMA CACHE
+-- 10. REPLICA IDENTITY FULL (REQUIRED FOR SUPABASE REALTIME MULTI-USER SYNC)
+ALTER TABLE public.pumps REPLICA IDENTITY FULL;
+ALTER TABLE public.nozzles REPLICA IDENTITY FULL;
+ALTER TABLE public.shifts REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_readings REPLICA IDENTITY FULL;
+ALTER TABLE public.daily_rates REPLICA IDENTITY FULL;
+ALTER TABLE public.fuel_types REPLICA IDENTITY FULL;
+ALTER TABLE public.employees REPLICA IDENTITY FULL;
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER TABLE public.operator_nozzle_assignments REPLICA IDENTITY FULL;
+ALTER TABLE public.customers REPLICA IDENTITY FULL;
+ALTER TABLE public.credit_transactions REPLICA IDENTITY FULL;
+ALTER TABLE public.tank_dip_readings REPLICA IDENTITY FULL;
+ALTER TABLE public.fuel_receipts REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_rate_snapshots REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_payments REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_expenses REPLICA IDENTITY FULL;
+ALTER TABLE public.station_settings REPLICA IDENTITY FULL;
+ALTER TABLE public.tanks REPLICA IDENTITY FULL;
+ALTER TABLE public.payment_methods REPLICA IDENTITY FULL;
+ALTER TABLE public.shift_types REPLICA IDENTITY FULL;
+ALTER TABLE public.expense_categories REPLICA IDENTITY FULL;
+
+-- 11. SUPABASE REALTIME PUBLICATION SETUP
+DO $$
+DECLARE
+    tbl text;
+    tables text[] := ARRAY[
+        'pumps', 'nozzles', 'shifts', 'shift_readings', 'daily_rates', 
+        'fuel_types', 'employees', 'profiles', 'operator_nozzle_assignments', 
+        'customers', 'credit_transactions', 'tank_dip_readings', 'fuel_receipts',
+        'shift_rate_snapshots', 'shift_payments', 'shift_expenses', 'station_settings',
+        'tanks', 'payment_methods', 'shift_types', 'expense_categories'
+    ];
+BEGIN
+    FOREACH tbl IN ARRAY tables LOOP
+        BEGIN
+            EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I;', tbl);
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+            WHEN undefined_object THEN null;
+            WHEN undefined_table THEN null;
+        END;
+    END LOOP;
+END $$;
+
+-- 12. REFRESH POSTGREST SCHEMA CACHE
 NOTIFY pgrst, 'reload schema';
