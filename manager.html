@@ -61,23 +61,26 @@
         }
 
         .drawer-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(0, 0, 0, 0.5) !important;
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            z-index: 998;
+            z-index: 1040 !important;
             opacity: 0;
             visibility: hidden;
-            pointer-events: none;
+            pointer-events: none !important;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
             transition: opacity 0.24s ease, visibility 0s linear 0.24s;
         }
 
         .drawer-backdrop.is-open {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-            transition: opacity 0.24s ease, visibility 0s;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            transition: opacity 0.24s ease, visibility 0s !important;
         }
 
         @media (max-width: 860px) {
@@ -88,6 +91,9 @@
             /* Sidebar is out of flow: content gets the whole screen */
             html body .app-layout {
                 display: block !important;
+                position: static !important;
+                z-index: auto !important;
+                overflow-x: visible !important;
                 grid-template-columns: 1fr !important;
             }
 
@@ -151,13 +157,13 @@
                 top: 0 !important;
                 left: 0 !important;
                 bottom: 0 !important;
-                width: min(285px, 82vw) !important;
+                width: min(290px, 84vw) !important;
                 min-width: 0 !important;
                 max-width: none !important;
                 height: 100vh !important;
                 height: 100dvh !important;
-                z-index: 999 !important;
-                background: var(--bg-surface, #12161f) !important;
+                z-index: 1050 !important;
+                background: var(--bg-surface, #ffffff) !important;
                 border-right: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1)) !important;
                 box-shadow: none !important;
                 padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
@@ -178,9 +184,13 @@
                 pointer-events: auto !important;
             }
 
+            [data-theme="dark"] html body .app-sidebar {
+                background: var(--bg-surface, #132235) !important;
+            }
+
             html body .app-sidebar.is-open {
                 transform: translate3d(0, 0, 0) !important;
-                visibility: visible;
+                visibility: visible !important;
                 box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
                 transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
                     box-shadow 0.26s ease,
@@ -385,9 +395,6 @@
     <!-- Animated Grid Background -->
     <div class="grid-background" aria-hidden="true"></div>
 
-    <!-- Mobile drawer backdrop -->
-    <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
-
     <!-- Application Top Bar -->
     <header class="app-header">
         <div class="header-brand">
@@ -464,6 +471,9 @@
 
     <!-- Main Layout -->
     <div class="app-layout">
+        <!-- Mobile drawer backdrop -->
+        <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+
         <!-- Sidebar Navigation -->
         <aside class="app-sidebar" id="app-sidebar">
             <!-- Mobile-only drawer top bar -->
@@ -1094,17 +1104,24 @@
             }
 
             function applyStatic() {
-                force(layout, { display: 'block', 'grid-template-columns': '1fr', 'padding-left': '0', 'margin-left': '0' });
+                force(layout, {
+                    display: 'block',
+                    position: 'static',
+                    'z-index': 'auto',
+                    'overflow-x': 'visible',
+                    'grid-template-columns': '1fr',
+                    'padding-left': '0',
+                    'margin-left': '0'
+                });
                 force(main, { 'margin-left': '0', width: '100%', 'max-width': '100%', 'min-width': '0', left: '0', transform: 'none' });
 
                 force(sidebar, {
                     position: 'fixed', top: '0', left: '0', bottom: '0', right: 'auto',
-                    width: 'min(285px, 82vw)', 'min-width': '0', 'max-width': 'none', height: 'auto',
-                    margin: '0', 'z-index': '999',
+                    width: 'min(290px, 84vw)', 'min-width': '0', 'max-width': 'none', height: '100dvh',
+                    margin: '0', 'z-index': '1050',
                     display: 'flex', 'flex-direction': 'column', 'align-items': 'stretch', gap: '8px',
                     'overflow-y': 'auto', 'overflow-x': 'hidden', 'overscroll-behavior': 'contain',
                     'pointer-events': 'auto', 'will-change': 'transform',
-                    background: 'var(--bg-surface, #12161f)',
                     'border-right': '1px solid var(--border-subtle, rgba(128,128,128,0.25))',
                     padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))'
                 });
@@ -1136,11 +1153,13 @@
                 force(sidebar, open ? {
                     transform: 'translate3d(0, 0, 0)',
                     visibility: 'visible',
+                    'z-index': '1050',
                     'box-shadow': '12px 0 32px rgba(0, 0, 0, 0.45)',
                     transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s'
                 } : {
                     transform: 'translate3d(-105%, 0, 0)',
                     visibility: 'hidden',
+                    'z-index': '1050',
                     'box-shadow': 'none',
                     transition: 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, visibility 0s linear 0.26s'
                 });
@@ -1177,8 +1196,20 @@
                 e.stopPropagation();
                 setDrawerState(!sidebar.classList.contains('is-open'));
             });
-            if (closeBtn) closeBtn.addEventListener('click', function () { setDrawerState(false); });
-            backdrop.addEventListener('click', function () { setDrawerState(false); });
+            function closeDrawer(e) {
+                if (e) {
+                    if (e.type === 'touchstart' && e.cancelable) e.preventDefault();
+                    e.stopPropagation();
+                }
+                setDrawerState(false);
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeDrawer);
+                closeBtn.addEventListener('touchstart', closeDrawer, { passive: false });
+            }
+            backdrop.addEventListener('click', closeDrawer);
+            backdrop.addEventListener('touchstart', closeDrawer, { passive: false });
 
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setDrawerState(false);

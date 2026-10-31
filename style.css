@@ -446,7 +446,7 @@ body, .app-header, .app-sidebar, .card, .glass-panel, .stat-card, .nozzle-card, 
     display: flex;
     min-height: calc(100vh - var(--header-height));
     position: relative;
-    z-index: 1;
+    z-index: auto;
 }
 
 .app-sidebar {
@@ -653,16 +653,33 @@ body, .app-header, .app-sidebar, .card, .glass-panel, .stat-card, .nozzle-card, 
 }
 
 /* Slide-over backdrop */
-.sidebar-backdrop {
+.sidebar-backdrop,
+.drawer-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 1040;
-    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.24s ease, visibility 0s linear 0.24s;
 }
 
-.sidebar-backdrop.hidden {
+.sidebar-backdrop.is-open,
+.drawer-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.24s ease, visibility 0s;
+}
+
+.sidebar-backdrop.hidden,
+.drawer-backdrop.hidden {
     display: none !important;
 }
 
@@ -1854,8 +1871,9 @@ input.is-invalid, select.is-invalid {
         flex-direction: row;
         width: 100%;
         max-width: 100%;
-        position: relative;
-        overflow-x: hidden;
+        position: static;
+        z-index: auto;
+        overflow-x: visible;
     }
 
     .app-sidebar {

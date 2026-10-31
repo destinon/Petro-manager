@@ -6,9 +6,6 @@ import {
     createShift,
     fetchNozzles,
     fetchNozzlesForOperator,
-    createNozzle,
-    updateNozzle,
-    deleteNozzle,
     fetchShiftTypes,
     fetchPaymentMethods,
     fetchExpenseCategories,
@@ -118,8 +115,6 @@ function setupOperatorTabNavigation() {
     document.getElementById('bar-quick-save-btn')?.addEventListener('click', () => handleSaveShift(false));
     document.getElementById('bar-quick-submit-btn')?.addEventListener('click', () => handleSaveShift(true));
     document.getElementById('save-all-readings-btn')?.addEventListener('click', saveAllMeterReadings);
-    document.getElementById('op-add-pump-btn')?.addEventListener('click', openAddPumpModal);
-    document.getElementById('op-manage-pumps-btn')?.addEventListener('click', openManagePumpsModal);
     document.getElementById('modal-close-btn')?.addEventListener('click', closeModal);
     document.getElementById('save-draft-btn')?.addEventListener('click', () => handleSaveShift(false));
     document.getElementById('submit-shift-btn')?.addEventListener('click', () => handleSaveShift(true));
@@ -421,9 +416,6 @@ async function loadNozzleCards(shift) {
                     <div class="nozzle-title" style="display: flex; align-items: center; gap: 8px;">
                         <span style="display: inline-flex; color: var(--accent-primary);"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 22V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v18M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1M5 9h9"></path></svg></span>
                         <span>${nozzle.name}</span>
-                        <button class="btn btn-icon op-card-edit-btn" data-edit-nozzle="${nozzle.id}" title="Edit ${nozzle.name} & Reading History" style="padding: 3px 6px; display: inline-flex; align-items: center; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface-muted); cursor: pointer;">
-                            <svg class="ui-icon" style="width: 0.85rem; height: 0.85rem;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
                     </div>
                     <span class="badge-fuel ${badgeClass}">${fuelName} @ ${formatCurrency(rate)}</span>
                 </div>
@@ -472,12 +464,6 @@ async function loadNozzleCards(shift) {
 
             closeInput.addEventListener('input', onReadingChange);
             testInput.addEventListener('input', onReadingChange);
-
-            // Bind pencil button
-            card.querySelector(`[data-edit-nozzle="${nozzle.id}"]`)?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openEditPumpModal(nozzle.id);
-            });
 
             container.appendChild(card);
             updateNozzleCalculations(nozzle.id);
@@ -931,7 +917,7 @@ async function handleSaveShift(isSubmitting) {
 }
 
 // ==========================================
-// PUMP / NOZZLE MANAGEMENT MODALS (OPERATOR CONSOLE)
+// MODAL HELPERS (OPERATOR CONSOLE)
 // ==========================================
 
 function openModal() {
@@ -940,274 +926,4 @@ function openModal() {
 
 function closeModal() {
     document.getElementById('app-modal')?.classList.add('hidden');
-}
-
-function openAddPumpModal() {
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const modalFooter = document.getElementById('modal-footer');
-
-    if (modalTitle) modalTitle.textContent = 'Add New Dispenser Pump / Nozzle';
-    if (modalBody) {
-        modalBody.innerHTML = `
-            <form id="new-pump-form">
-                <div class="form-group">
-                    <label for="new-pump-name">Pump / Nozzle Label</label>
-                    <input type="text" id="new-pump-name" required placeholder="e.g. MS 11, HSD 12, or Bay 3 - Petrol">
-                    <small style="color: var(--text-muted); font-size: 0.8rem;">Descriptive name for this dispenser nozzle.</small>
-                </div>
-                <div class="form-group">
-                    <label for="new-pump-fuel">Fuel Grade</label>
-                    <select id="new-pump-fuel" required>
-                        <option value="1">Petrol (MS)</option>
-                        <option value="2">Diesel (HSD)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="new-pump-reading">Initial / Master Meter Reading</label>
-                    <input type="number" step="0.01" id="new-pump-reading" required value="0.00" placeholder="0.00">
-                    <small style="color: var(--text-muted); font-size: 0.8rem;">Current baseline totalizer reading on the physical pump meter.</small>
-                </div>
-            </form>
-        `;
-    }
-
-    if (modalFooter) {
-        modalFooter.innerHTML = `
-            <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-            <button class="btn btn-primary" id="save-new-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Create Pump</button>
-        `;
-
-        document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
-        document.getElementById('save-new-pump-btn')?.addEventListener('click', async () => {
-            const name = document.getElementById('new-pump-name')?.value.trim();
-            const fuelTypeId = document.getElementById('new-pump-fuel')?.value;
-            const reading = document.getElementById('new-pump-reading')?.value;
-
-            if (!name) {
-                toast.error('Please enter a pump name or label.');
-                return;
-            }
-
-            if (reading === '' || isNaN(parseFloat(reading))) {
-                toast.error('Please enter a valid initial meter reading.');
-                return;
-            }
-
-            try {
-                const created = await createNozzle({
-                    name,
-                    fuel_type_id: parseInt(fuelTypeId),
-                    master_reading: parseFloat(reading)
-                });
-
-                toast.success(`Pump "${created.name}" created and added to shift!`);
-                closeModal();
-                await loadNozzleCards(shiftState.activeShift || { id: shiftState.shiftId });
-                recalculateShiftTotals();
-            } catch (err) {
-                toast.error('Failed to create pump: ' + err.message);
-            }
-        });
-    }
-
-    openModal();
-}
-
-async function openEditPumpModal(nozzleId) {
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const modalFooter = document.getElementById('modal-footer');
-
-    try {
-        const nozzles = await fetchNozzles();
-        const nozzle = nozzles.find(n => n.id === parseInt(nozzleId));
-
-        if (!nozzle) {
-            toast.error('Selected pump not found.');
-            return;
-        }
-
-        if (modalTitle) modalTitle.textContent = `Edit Dispenser Pump - ${nozzle.name}`;
-        if (modalBody) {
-            const isMs = (nozzle.fuel_type_id === 1 || nozzle.fuel_types?.name === 'MS' || nozzle.name.includes('MS'));
-            modalBody.innerHTML = `
-                <form id="edit-pump-form">
-                    <div class="form-group">
-                        <label for="edit-pump-name">Pump / Nozzle Label</label>
-                        <input type="text" id="edit-pump-name" required value="${nozzle.name}" placeholder="e.g. MS 1">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-pump-fuel">Fuel Grade</label>
-                        <select id="edit-pump-fuel" required>
-                            <option value="1" ${isMs ? 'selected' : ''}>Petrol (MS)</option>
-                            <option value="2" ${!isMs ? 'selected' : ''}>Diesel (HSD)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-pump-reading">Master / Opening Reading</label>
-                        <input type="number" step="0.01" id="edit-pump-reading" required value="${parseFloat(nozzle.master_reading || 0).toFixed(2)}">
-                        <small style="color: var(--text-muted); font-size: 0.8rem;">Calibrates the baseline reading for this dispenser unit.</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-pump-status">Pump Operational Status</label>
-                        <select id="edit-pump-status">
-                            <option value="true" ${nozzle.is_active !== false ? 'selected' : ''}>Active (In Service)</option>
-                            <option value="false" ${nozzle.is_active === false ? 'selected' : ''}>Inactive (Decommissioned / Off)</option>
-                        </select>
-                    </div>
-                </form>
-            `;
-        }
-
-        if (modalFooter) {
-            modalFooter.innerHTML = `
-                <button class="btn btn-danger" id="modal-delete-pump-btn" style="margin-right: auto;"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Pump & History</button>
-                <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-                <button class="btn btn-primary" id="save-edit-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Changes</button>
-            `;
-
-            document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
-
-            document.getElementById('modal-delete-pump-btn')?.addEventListener('click', () => {
-                handleDeletePump(nozzle.id, nozzle.name);
-            });
-
-            document.getElementById('save-edit-pump-btn')?.addEventListener('click', async () => {
-                const name = document.getElementById('edit-pump-name')?.value.trim();
-                const fuelTypeId = parseInt(document.getElementById('edit-pump-fuel')?.value);
-                const reading = parseFloat(document.getElementById('edit-pump-reading')?.value);
-                const isActive = document.getElementById('edit-pump-status')?.value === 'true';
-
-                if (!name) {
-                    toast.error('Pump name is required.');
-                    return;
-                }
-
-                if (isNaN(reading)) {
-                    toast.error('Valid master reading is required.');
-                    return;
-                }
-
-                try {
-                    await updateNozzle(nozzle.id, {
-                        name,
-                        fuel_type_id: fuelTypeId,
-                        master_reading: reading,
-                        is_active: isActive
-                    });
-
-                    toast.success(`Pump "${name}" updated!`);
-                    closeModal();
-                    await loadNozzleCards(shiftState.activeShift || { id: shiftState.shiftId });
-                    recalculateShiftTotals();
-                } catch (err) {
-                    toast.error('Failed to update pump: ' + err.message);
-                }
-            });
-        }
-
-        openModal();
-    } catch (err) {
-        console.error('Error opening edit pump modal:', err);
-        toast.error('Failed to load pump details.');
-    }
-}
-
-async function handleDeletePump(nozzleId, nozzleName) {
-    const confirmed = window.confirm(
-        `Are you sure you want to permanently delete pump "${nozzleName}"?\n\nThis will remove the pump and clear its meter reading histories from this and past shifts. This action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-        await deleteNozzle(nozzleId, true);
-        delete shiftState.readings[nozzleId];
-        toast.success(`Pump "${nozzleName}" and history deleted.`);
-        closeModal();
-        await loadNozzleCards(shiftState.activeShift || { id: shiftState.shiftId });
-        recalculateShiftTotals();
-    } catch (err) {
-        console.error('Error deleting pump:', err);
-        toast.error('Failed to delete pump: ' + err.message);
-    }
-}
-
-async function openManagePumpsModal() {
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const modalFooter = document.getElementById('modal-footer');
-
-    try {
-        const nozzles = await fetchNozzles();
-        if (modalTitle) modalTitle.textContent = 'Manage Dispenser Pumps & History';
-
-        if (modalBody) {
-            modalBody.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                    <p style="margin: 0; color: var(--text-secondary); font-size: 0.88rem;">Configure dispensers, edit meter calibrations, or delete pumps.</p>
-                    <button class="btn btn-primary btn-sm" id="modal-sub-add-pump-btn"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add New Pump</button>
-                </div>
-                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
-                    <table class="data-table" style="font-size: 0.85rem;">
-                        <thead>
-                            <tr>
-                                <th>Pump / Nozzle</th>
-                                <th>Fuel</th>
-                                <th>Opening / Master</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${nozzles.map(n => `
-                                <tr>
-                                    <td><strong>${n.name}</strong></td>
-                                    <td><span class="badge-fuel ${n.fuel_types?.name === 'MS' || n.name.includes('MS') ? 'fuel-ms' : 'fuel-hsd'}">${n.fuel_types?.name || (n.name.includes('MS') ? 'MS' : 'HSD')}</span></td>
-                                    <td class="mono">${parseFloat(n.master_reading || 0).toFixed(2)}</td>
-                                    <td><span style="color: ${n.is_active !== false ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${n.is_active !== false ? 'Active' : 'Inactive'}</span></td>
-                                    <td>
-                                        <div style="display: flex; gap: 6px;">
-                                            <button class="btn btn-secondary btn-sm" data-modal-edit="${n.id}"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</button>
-                                            <button class="btn btn-danger btn-sm" data-modal-del="${n.id}" data-name="${n.name}"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            document.getElementById('modal-sub-add-pump-btn')?.addEventListener('click', () => {
-                openAddPumpModal();
-            });
-
-            modalBody.querySelectorAll('[data-modal-edit]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.getAttribute('data-modal-edit');
-                    openEditPumpModal(id);
-                });
-            });
-
-            modalBody.querySelectorAll('[data-modal-del]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.getAttribute('data-modal-del');
-                    const name = btn.getAttribute('data-name');
-                    handleDeletePump(id, name);
-                });
-            });
-        }
-
-        if (modalFooter) {
-            modalFooter.innerHTML = '<button class="btn btn-secondary" id="modal-cancel-btn">Close</button>';
-            document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
-        }
-
-        openModal();
-    } catch (err) {
-        console.error('Error opening manage pumps modal:', err);
-        toast.error('Failed to load pump list.');
-    }
 }

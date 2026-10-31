@@ -159,7 +159,11 @@ function setupManagerNavigation() {
     // Mobile backdrop tap closes expanded drawer
     backdrop?.addEventListener('click', () => {
         sidebar?.classList.remove('expanded');
+        sidebar?.classList.remove('is-open');
         backdrop.classList.add('hidden');
+        const drawerBackdrop = document.getElementById('drawer-backdrop');
+        if (drawerBackdrop) drawerBackdrop.classList.remove('is-open');
+        document.body.style.overflow = '';
     });
 
     // Nav button tab switcher & mobile auto-collapse
@@ -172,7 +176,11 @@ function setupManagerNavigation() {
             // Auto-collapse drawer on mobile
             if (window.innerWidth <= 900) {
                 sidebar?.classList.remove('expanded');
+                sidebar?.classList.remove('is-open');
                 backdrop?.classList.add('hidden');
+                const drawerBackdrop = document.getElementById('drawer-backdrop');
+                if (drawerBackdrop) drawerBackdrop.classList.remove('is-open');
+                document.body.style.overflow = '';
             }
         });
 
