@@ -25,15 +25,28 @@
         })();
     </script>
 
-    <!-- Mobile Drawer & Responsive Layout Patch -->
+    <!-- Mobile Drawer & Responsive Layout Patch (v2) -->
     <style>
+        /* ---------- Always-on safety ---------- */
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .app-main,
+        .card,
+        .table-responsive {
+            min-width: 0;
+        }
+
         /* Hamburger Menu Button (Hidden on Desktop) */
         .mobile-menu-btn {
             display: none;
             align-items: center;
             justify-content: center;
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             padding: 0;
             border-radius: var(--radius-sm, 8px);
             background: var(--bg-surface-muted, rgba(128, 128, 128, 0.12));
@@ -58,29 +71,61 @@
             -webkit-backdrop-filter: blur(4px);
             z-index: 998;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.24s ease;
+            transition: opacity 0.24s ease, visibility 0s linear 0.24s;
         }
 
         .sidebar-backdrop.is-open {
             opacity: 1;
+            visibility: visible;
             pointer-events: auto;
+            transition: opacity 0.24s ease, visibility 0s;
         }
 
-        /* Mobile Viewports (<= 860px) */
+        /* Toolbar above nozzle grid (all sizes) */
+        .op-toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ---------- Mobile (<= 860px) ---------- */
         @media (max-width: 860px) {
             .mobile-menu-btn {
                 display: inline-flex;
             }
 
-            /* Compact Header so it doesn't wrap/overflow */
+            /* Layout: sidebar is out of flow, so main must be single full-width column */
+            .app-layout {
+                display: block !important;
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Compact header */
             .app-header {
-                padding: 10px 14px !important;
-                gap: 8px;
+                padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px !important;
+                gap: 8px !important;
+                flex-wrap: nowrap !important;
             }
 
             .header-brand {
                 gap: 8px !important;
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+
+            .brand-title {
+                font-size: 1.05rem !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .header-actions {
+                gap: 6px !important;
+                flex: 0 0 auto;
+                flex-wrap: nowrap !important;
             }
 
             .station-badge,
@@ -89,18 +134,30 @@
                 display: none !important;
             }
 
-            /* Fix Off-Canvas Drawer so it NEVER jams */
+            #manager-portal-link,
+            #logout-btn,
+            .theme-toggle-btn {
+                min-height: 40px;
+                padding: 6px 12px !important;
+            }
+
+            #manager-portal-link {
+                padding: 6px 10px !important;
+            }
+
+            /* Off-canvas drawer */
             .app-sidebar {
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
                 bottom: 0 !important;
                 width: min(285px, 82vw) !important;
+                height: 100vh !important;
                 height: 100dvh !important;
                 z-index: 999 !important;
                 background: var(--bg-surface, #12161f) !important;
                 border-right: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1)) !important;
-                box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
+                box-shadow: none !important;
                 padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -109,15 +166,23 @@
                 overscroll-behavior: contain;
                 -webkit-overflow-scrolling: touch;
 
-                /* Hardware-accelerated slide */
+                /* closed state: off-screen, no shadow leak, not focusable */
                 transform: translate3d(-105%, 0, 0) !important;
-                transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1) !important;
+                visibility: hidden;
+                transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+                    box-shadow 0.26s ease,
+                    visibility 0s linear 0.26s !important;
                 will-change: transform;
                 pointer-events: auto !important;
             }
 
             .app-sidebar.is-open {
                 transform: translate3d(0, 0, 0) !important;
+                visibility: visible;
+                box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45) !important;
+                transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+                    box-shadow 0.26s ease,
+                    visibility 0s !important;
             }
 
             .mobile-drawer-header {
@@ -133,58 +198,194 @@
                 background: transparent;
                 border: none;
                 color: var(--text-secondary, currentColor);
-                font-size: 1.6rem;
+                font-size: 1.8rem;
                 line-height: 1;
-                padding: 4px 8px;
+                min-width: 44px;
+                min-height: 44px;
                 cursor: pointer;
             }
 
             .sidebar-btn {
                 width: 100% !important;
                 justify-content: flex-start !important;
+                min-height: 48px;
                 padding: 13px 14px !important;
                 font-size: 0.95rem !important;
                 border-radius: var(--radius-sm, 8px) !important;
                 touch-action: manipulation;
             }
 
-            /* Ensure main content uses full width and clears sticky footer */
+            /* Main content: full width, clears the sticky bottom bar */
             .app-main {
                 width: 100% !important;
+                max-width: 100% !important;
                 margin-left: 0 !important;
-                padding: 14px 12px 150px 12px !important;
+                padding: 14px 12px 170px 12px !important;
             }
 
-            /* Mobile-friendly Sticky Bottom Summary Bar */
+            /* Shift setup card */
+            #shift-setup-panel {
+                margin: 16px auto !important;
+                padding: 24px 16px !important;
+            }
+
+            #shift-setup-panel .form-group {
+                max-width: 100% !important;
+            }
+
+            #start-shift-btn {
+                width: 100%;
+            }
+
+            /* Shift banner stacks nicely */
+            #shift-active-panel>.card:first-child {
+                padding: 12px 14px !important;
+            }
+
+            #shift-active-panel>.card:first-child>div:last-child {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 6px 14px !important;
+            }
+
+            /* Section headings */
+            .op-tab-content h2 {
+                font-size: 1.25rem;
+            }
+
+            /* Toolbar: 2 columns, Save spans full width */
+            .op-toolbar {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .op-toolbar .btn {
+                width: 100%;
+                justify-content: center;
+                min-height: 44px;
+            }
+
+            .op-toolbar #save-all-readings-btn {
+                grid-column: 1 / -1;
+            }
+
+            /* Nozzle cards: one column on phones */
+            .nozzles-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            /* Two-pane forms/tables stack with tighter spacing */
+            .op-grid-2 {
+                gap: 16px !important;
+            }
+
+            .op-tab-content .card {
+                padding: 16px !important;
+            }
+
+            /* Tables scroll inside their own container */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -4px;
+            }
+
+            .table-responsive .data-table {
+                min-width: 460px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 10px !important;
+                font-size: 0.82rem !important;
+                white-space: nowrap;
+            }
+
+            /* Inputs: 16px stops iOS zoom-on-focus, 44px tap height */
+            input[type="text"],
+            input[type="number"],
+            input[type="tel"],
+            input[type="date"],
+            input[type="password"],
+            select,
+            textarea {
+                font-size: 16px !important;
+                min-height: 44px;
+                max-width: 100%;
+            }
+
+            textarea {
+                min-height: 72px;
+            }
+
+            .btn {
+                min-height: 44px;
+                touch-action: manipulation;
+            }
+
+            /* Reconciliation buttons */
+            #recon-view .card>div[style*="display: flex"][style*="gap: 12px"]:last-child {
+                flex-direction: column;
+            }
+
+            #recon-view #save-draft-btn,
+            #recon-view #submit-shift-btn {
+                flex: 1 1 auto !important;
+                width: 100%;
+            }
+
+            #recon-variance-display {
+                font-size: 1.6rem !important;
+            }
+
+            .reading-preview {
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            /* Sticky bottom summary bar */
             .shift-summary-bar {
                 left: 0 !important;
                 right: 0 !important;
                 bottom: 0 !important;
+                width: 100% !important;
                 padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
                 flex-direction: column !important;
                 align-items: stretch !important;
-                gap: 10px !important;
+                gap: 8px !important;
                 z-index: 900 !important;
             }
 
             .shift-summary-bar .summary-metrics {
                 display: grid !important;
-                grid-template-columns: repeat(4, 1fr) !important;
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
                 gap: 6px !important;
                 width: 100% !important;
             }
 
             .shift-summary-bar .summary-metric {
                 text-align: center;
+                min-width: 0;
             }
 
             .shift-summary-bar .summary-metric-label {
-                font-size: 0.68rem !important;
+                font-size: 0.66rem !important;
                 display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .shift-summary-bar .summary-metric-val {
-                font-size: 0.85rem !important;
+                font-size: 0.82rem !important;
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .shift-summary-bar .summary-actions {
@@ -197,7 +398,73 @@
                 flex: 1 !important;
                 justify-content: center !important;
                 padding: 9px 10px !important;
-                font-size: 0.85rem !important;
+                font-size: 0.88rem !important;
+            }
+
+            /* Hide the bar while typing so it never covers the field / keyboard */
+            body.kbd-open .shift-summary-bar {
+                display: none !important;
+            }
+
+            /* Modal becomes a near full-width scrollable sheet */
+            .modal-overlay {
+                padding: 12px !important;
+                align-items: flex-end !important;
+            }
+
+            .modal-dialog {
+                width: 100% !important;
+                max-width: 100% !important;
+                max-height: 88vh;
+                max-height: 88dvh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 !important;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            }
+
+            .modal-footer .btn {
+                flex: 1 1 140px;
+            }
+        }
+
+        /* ---------- Small phones (<= 400px) ---------- */
+        @media (max-width: 400px) {
+            .app-main {
+                padding-bottom: 200px !important;
+            }
+
+            .shift-summary-bar .summary-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+
+            .shift-summary-bar .summary-metric {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                text-align: left;
+                gap: 6px;
+            }
+
+            .op-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .op-toolbar #save-all-readings-btn {
+                grid-column: auto;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .app-sidebar,
+            .sidebar-backdrop {
+                transition: none !important;
             }
         }
     </style>
@@ -231,7 +498,7 @@
                     </path>
                 </svg>
             </span>
-            <div>
+            <div style="min-width: 0;">
                 <h1 class="brand-title">PetroCorp</h1>
             </div>
             <span id="station-badge" class="station-badge">OPERATOR TERMINAL</span>
@@ -240,7 +507,8 @@
         <div class="header-actions">
             <!-- Manager link if user has manager access -->
             <a href="manager.html" id="manager-portal-link" class="btn btn-secondary hidden"
-                style="padding: 6px 12px; font-size: 0.82rem;" title="Switch to Manager Administration Console">
+                style="padding: 6px 12px; font-size: 0.82rem;" title="Switch to Manager Administration Console"
+                aria-label="Manager Portal">
                 <svg class="ui-icon" viewBox="0 0 24 24">
                     <line x1="18" y1="20" x2="18" y2="10"></line>
                     <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -390,7 +658,7 @@
                             <p class="subtitle">Opening readings are auto-locked. Enter closing meter readings to
                                 calculate net sales.</p>
                         </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div class="op-toolbar">
                             <button id="op-add-pump-btn" class="btn btn-primary"><svg class="ui-icon"
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -418,7 +686,7 @@
 
                 <!-- 2. UDHAARI (CREDIT SALES) TAB -->
                 <section id="credit-view" class="op-tab-content hidden">
-                    <div
+                    <div class="op-grid-2"
                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Form -->
                         <div class="card" style="padding: 24px;">
@@ -434,7 +702,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="cred-vehicle">Vehicle Number</label>
-                                    <input type="text" id="cred-vehicle" placeholder="e.g. MH 12 AB 1234">
+                                    <input type="text" id="cred-vehicle" placeholder="e.g. MH 12 AB 1234"
+                                        autocapitalize="characters" autocomplete="off">
                                 </div>
                                 <div class="form-group">
                                     <label for="cred-fuel">Fuel Grade</label>
@@ -488,7 +757,7 @@
 
                 <!-- 3. EXPENSES TAB -->
                 <section id="expenses-view" class="op-tab-content hidden">
-                    <div
+                    <div class="op-grid-2"
                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Form -->
                         <div class="card" style="padding: 24px;">
@@ -541,7 +810,7 @@
 
                 <!-- 4. RECONCILIATION & END SHIFT TAB -->
                 <section id="recon-view" class="op-tab-content hidden">
-                    <div
+                    <div class="op-grid-2"
                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start;">
                         <!-- Payment Methods Input -->
                         <div class="card" style="padding: 24px;">
@@ -672,6 +941,7 @@
             const closeBtn = document.getElementById('mobile-drawer-close');
             const sidebar = document.getElementById('operator-sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
+            const mq = window.matchMedia('(max-width: 860px)');
 
             if (!toggleBtn || !sidebar || !backdrop) return;
 
@@ -680,37 +950,58 @@
                 backdrop.classList.toggle('is-open', open);
                 toggleBtn.setAttribute('aria-expanded', String(open));
                 document.body.style.overflow = open ? 'hidden' : '';
+                if (open) {
+                    var first = sidebar.querySelector('.sidebar-btn');
+                    if (first) first.focus({ preventScroll: true });
+                } else if (document.activeElement && sidebar.contains(document.activeElement)) {
+                    toggleBtn.focus({ preventScroll: true });
+                }
             }
 
             toggleBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                const isOpen = sidebar.classList.contains('is-open');
-                setDrawerState(!isOpen);
+                setDrawerState(!sidebar.classList.contains('is-open'));
             });
 
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function () {
-                    setDrawerState(false);
-                });
-            }
+            if (closeBtn) closeBtn.addEventListener('click', function () { setDrawerState(false); });
+            backdrop.addEventListener('click', function () { setDrawerState(false); });
 
-            backdrop.addEventListener('click', function () {
-                setDrawerState(false);
+            // Close on Escape
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setDrawerState(false);
             });
 
-            // Auto-close drawer immediately when any tab button is tapped
+            // Close drawer when a tab is tapped, then jump to top of the new view
             sidebar.addEventListener('click', function (e) {
                 const tabBtn = e.target.closest('.sidebar-btn');
                 if (tabBtn) {
                     setDrawerState(false);
+                    if (mq.matches) window.scrollTo({ top: 0, behavior: 'auto' });
                 }
             });
 
             // Reset cleanly if rotated or resized to desktop
-            window.addEventListener('resize', function () {
-                if (window.innerWidth > 860 && sidebar.classList.contains('is-open')) {
-                    setDrawerState(false);
+            function onBreakpointChange() {
+                if (!mq.matches && sidebar.classList.contains('is-open')) setDrawerState(false);
+            }
+            if (mq.addEventListener) mq.addEventListener('change', onBreakpointChange);
+            else if (mq.addListener) mq.addListener(onBreakpointChange);
+
+            // Hide sticky summary bar while a field is focused (keyboard open)
+            var kbdTimer;
+            document.addEventListener('focusin', function (e) {
+                if (!mq.matches) return;
+                if (e.target.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select')) {
+                    clearTimeout(kbdTimer);
+                    document.body.classList.add('kbd-open');
                 }
+            });
+            document.addEventListener('focusout', function () {
+                clearTimeout(kbdTimer);
+                kbdTimer = setTimeout(function () {
+                    var a = document.activeElement;
+                    if (!a || !a.matches('input, textarea, select')) document.body.classList.remove('kbd-open');
+                }, 120);
             });
         })();
     </script>
